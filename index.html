@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DM Field Verification & Route Planner</title>
-    <!-- Tailwind CSS CDN -->
+    <title>DM Smart Nearest Route Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
@@ -12,24 +11,40 @@
     <!-- Header -->
     <header class="bg-blue-600 text-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold">🗺️ DM Field Visit & Route Planner</h1>
-            <span id="total-badge" class="bg-blue-700 text-xs px-3 py-1 rounded-full font-semibold">Loading...</span>
+            <h1 class="text-xl font-bold">🗺️ DM Smart Nearest Route Planner</h1>
+            <span id="total-badge" class="bg-blue-700 text-xs px-3 py-1 rounded-full font-semibold">Ready</span>
         </div>
     </header>
 
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-6">
         
-        <!-- Filter Section -->
-        <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div class="w-full sm:w-1/3">
-                <label class="block text-sm font-medium text-gray-700 mb-1">District Select Karein:</label>
-                <input type="text" id="district-input" placeholder="jaise: Raipur, Bilaspur..." 
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+        <!-- Input & Configuration Box -->
+        <div class="bg-white p-6 rounded-xl shadow-sm mb-6 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">District Select Karein:</label>
+                    <input type="text" id="district-input" placeholder="jaise: Balod, Raipur..." 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Starting Point Select Karein:</label>
+                    <select id="start-type" onchange="toggleStartInput()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="gps">📍 Use My Current GPS Location</option>
+                        <option value="manual">✍️ Enter Manual Lat, Long</option>
+                    </select>
+                </div>
             </div>
-            <div class="w-full sm:w-auto flex items-end">
-                <button onclick="fetchData()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg transition">
-                    Load Route Plan
+
+            <!-- Manual Lat-Long Input (Hidden by default) -->
+            <div id="manual-box" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <input type="text" id="manual-lat" placeholder="Latitude (jaise: 20.735)" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                <input type="text" id="manual-lon" placeholder="Longitude (jaise: 81.318)" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="loadNearestCenters()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition shadow">
+                    Find Nearest 15 Unverified Centers
                 </button>
             </div>
         </div>
@@ -37,111 +52,172 @@
         <!-- Loading Spinner -->
         <div id="loader" class="text-center py-12 hidden">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
-            <p class="text-gray-500 mt-2">Data fetch ho raha hai, kripya pratiksha karein...</p>
+            <p class="text-gray-500 mt-2">Nearest locations calculate ho rahi hain...</p>
         </div>
 
-        <!-- Days Plan Container -->
-        <div id="days-container" class="space-y-8">
-            <!-- Dynamic Days and Tables will load here -->
+        <!-- Welcome Message -->
+        <div id="welcome-msg" class="bg-white p-8 rounded-xl text-center text-gray-500 shadow-sm border border-gray-100">
+            <p class="text-lg font-medium text-gray-700">👋 Namaste!</p>
+            <p class="text-sm text-gray-500 mt-1">District aur starting point chun kar <b>"Find Nearest 15 Unverified Centers"</b> par click karein.</p>
+        </div>
+
+        <!-- Content & Table Container -->
+        <div id="content-container" class="hidden space-y-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 id="list-title" class="text-lg font-bold text-gray-800">Nearest Route List</h2>
+                    <p class="text-xs text-gray-500">Verified centers ko hata kar baaki unverified me se nearest 15 centers.</p>
+                </div>
+                <button onclick="openGoogleMapsRoute()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow transition flex items-center gap-2">
+                    🗺️ Open Full Route in Google Maps
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b">
+                                <th class="px-4 py-3">#</th>
+                                <th class="px-4 py-3">Block</th>
+                                <th class="px-4 py-3">CSC ID</th>
+                                <th class="px-4 py-3">VLE Name</th>
+                                <th class="px-4 py-3">Mobile</th>
+                                <th class="px-4 py-3">Approx Distance</th>
+                                <th class="px-4 py-3">Location</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
     </main>
 
     <!-- JavaScript Logic -->
     <script>
-        // Yahan apna Apps Script ka Web App URL daalein
         const API_URL = "https://script.google.com/macros/s/AKfycbxh__XkpPpe6C7hm84JaZeMJ_7w_e_FrhuRG2A74ncl3pXDcIKEGtwfqkiPvYDRQVb0/exec";
+                         
+        let fetchedCenters = [];
+        let currentStartLat = null;
+        let currentStartLon = null;
 
-        async function fetchData() {
-            const district = document.getElementById('district-input').value.trim();
+        function toggleStartInput() {
+            let type = document.getElementById('start-type').value;
+            let manualBox = document.getElementById('manual-box');
+            if (type === 'manual') {
+                manualBox.classList.remove('hidden');
+            } else {
+                manualBox.classList.add('hidden');
+            }
+        }
+
+        function loadNearestCenters() {
+            let district = document.getElementById('district-input').value.trim();
+            if (!district) {
+                alert('Kripya district ka naam daalein!');
+                return;
+            }
+
+            let startType = document.getElementById('start-type').value;
+
+            if (startType === 'gps') {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            currentStartLat = position.coords.latitude;
+                            currentStartLon = position.coords.longitude;
+                            fetchDataFromAPI(district, currentStartLat, currentStartLon);
+                        },
+                        (error) => {
+                            alert('GPS location fetch nahi ho payi. Kripya Manual option select karein.');
+                        }
+                    );
+                } else {
+                    alert('Aapka browser Geolocation support nahi karta.');
+                }
+            } else {
+                let lat = parseFloat(document.getElementById('manual-lat').value);
+                let lon = parseFloat(document.getElementById('manual-lon').value);
+                if (isNaN(lat) || isNaN(lon)) {
+                    alert('Kripya valid manual Latitude aur Longitude daalein!');
+                    return;
+                }
+                currentStartLat = lat;
+                currentStartLon = lon;
+                fetchDataFromAPI(district, currentStartLat, currentStartLon);
+            }
+        }
+
+        async function fetchDataFromAPI(district, lat, lon) {
             const loader = document.getElementById('loader');
-            const container = document.getElementById('days-container');
+            const welcomeMsg = document.getElementById('welcome-msg');
+            const contentContainer = document.getElementById('content-container');
             const badge = document.getElementById('total-badge');
 
+            welcomeMsg.classList.add('hidden');
+            contentContainer.classList.add('hidden');
             loader.classList.remove('hidden');
-            container.innerHTML = "";
 
             try {
-                let url = API_URL;
-                if (district) {
-                    url += `?district=${encodeURIComponent(district)}`;
-                }
-
+                let url = `${API_URL}?district=${encodeURIComponent(district)}&lat=${lat}&lon=${lon}&limit=15`;
                 let response = await fetch(url);
                 let result = await response.json();
 
                 loader.classList.add('hidden');
 
                 if (result.success) {
-                    badge.innerText = `Total Centers: ${result.totalCenters}`;
+                    fetchedCenters = result.centers;
+                    badge.innerText = `Unverified Remaining: ${result.totalDistrictUnverified} | Showing Nearest: ${fetchedCenters.length}`;
                     
-                    if (result.daysPlan.length === 0) {
-                        container.innerHTML = `<div class="bg-white p-6 rounded-xl text-center text-gray-500 shadow-sm">Koi record nahi mila.</div>`;
+                    if (fetchedCenters.length === 0) {
+                        alert('Is district me verification ke liye koi unverified center nahi bacha hai!');
                         return;
                     }
 
-                    result.daysPlan.forEach(day => {
-                        let tableRows = day.centers.map((c, index) => `
-                            <tr class="hover:bg-gray-50 border-b">
-                                <td class="px-4 py-3 text-sm text-gray-700">${index + 1}</td>
-                                <td class="px-4 py-3 text-sm font-medium text-gray-900">${c.block}</td>
-                                <td class="px-4 py-3 text-sm text-gray-600">${c.cscId}</td>
-                                <td class="px-4 py-3 text-sm font-semibold text-gray-800">${c.vleName}</td>
-                                <td class="px-4 py-3 text-sm text-gray-600">${c.mobileNo}</td>
-                                <td class="px-4 py-3 text-sm">
-                                    ${c.photoLink ? `<a href="${c.photoLink}" target="_blank" class="text-blue-600 hover:underline font-medium">View Photo</a>` : '<span class="text-gray-400">No Photo</span>'}
-                                </td>
-                                <td class="px-4 py-3 text-sm">
-                                    ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-xs font-semibold hover:bg-emerald-200">📍 Open Map</a>` : 'N/A'}
-                                </td>
-                            </tr>
-                        `).join('');
+                    let tableRows = fetchedCenters.map((c, index) => `
+                        <tr class="hover:bg-gray-50 border-b">
+                            <td class="px-4 py-3 text-sm text-gray-700">${index + 1}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">${c.block}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">${c.cscId}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-gray-800">${c.vleName}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">${c.mobileNo}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-emerald-600">${c.distance ? c.distance.toFixed(2) + ' km' : 'N/A'}</td>
+                            <td class="px-4 py-3 text-sm">
+                                ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-200">Map</a>` : 'N/A'}
+                            </td>
+                        </tr>
+                    `).join('');
 
-                        let dayCard = `
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                                <div class="bg-gray-100 px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-b gap-4">
-                                    <div>
-                                        <h2 class="text-lg font-bold text-gray-800">📅 Day ${day.dayNumber} Route Plan</h2>
-                                        <p class="text-xs text-gray-500">Is din ke liye total ${day.centers.length} VLE centers scheduled hain.</p>
-                                    </div>
-                                    <a href="${day.routeUrl}" target="_blank" class="bg-green-600 hover:bg-green-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition flex items-center gap-2">
-                                        🗺️ Start Day ${day.dayNumber} Route Map
-                                    </a>
-                                </div>
-                                <div class="overflow-x-auto">
-                                    <table class="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b">
-                                                <th class="px-4 py-3">#</th>
-                                                <th class="px-4 py-3">Block</th>
-                                                <th class="px-4 py-3">CSC ID</th>
-                                                <th class="px-4 py-3">VLE Name</th>
-                                                <th class="px-4 py-3">Mobile</th>
-                                                <th class="px-4 py-3">Photo</th>
-                                                <th class="px-4 py-3">Location</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            ${tableRows}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        `;
-                        container.innerHTML += dayCard;
-                    });
+                    document.getElementById('table-body').innerHTML = tableRows;
+                    document.getElementById('list-title').innerText = `${district.toUpperCase()} - 15 Nearest Unverified Centers`;
+                    contentContainer.classList.remove('hidden');
                 } else {
-                    alert('Data load karne mein kuch samasya aayi.');
+                    alert('Data load karne me samasya aayi.');
                 }
             } catch (error) {
                 loader.classList.add('hidden');
                 console.error(error);
-                alert('Connection error! Kripya apna URL check karein.');
+                alert('Connection error! Kripya URL check karein.');
             }
         }
 
-        // Page load hote hi saara data load karne ke liye
-        window.onload = () => fetchData();
+        function openGoogleMapsRoute() {
+            if (fetchedCenters.length === 0) return;
+
+            let points = [`${currentStartLat},${currentStartLon}`];
+            fetchedCenters.forEach(c => {
+                if (c.lat && c.lon) {
+                    points.push(`${c.lat},${c.lon}`);
+                }
+            });
+
+            let routeUrl = `https://www.google.com/maps/dir/${points.join('/')}`;
+            window.open(routeUrl, '_blank');
+        }
     </script>
 </body>
 </html>
