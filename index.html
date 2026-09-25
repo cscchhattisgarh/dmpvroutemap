@@ -12,7 +12,7 @@
     <header class="bg-blue-600 text-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
             <h1 class="text-xl font-bold">🗺️ DM Smart Nearest Route Planner</h1>
-            <span id="total-badge" class="bg-blue-700 text-xs px-3 py-1 rounded-full font-semibold">Loading Districts...</span>
+            <span id="total-badge" class="bg-blue-700 text-xs px-3 py-1 rounded-full font-semibold">Ready</span>
         </div>
     </header>
 
@@ -23,13 +23,43 @@
         <div class="bg-white p-6 rounded-xl shadow-sm mb-6 space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">District Type Karein:</label>
-                    <!-- Auto-suggest Datalist Input -->
-                    <input type="text" id="district-input" list="district-list" placeholder="District ka naam type karein (jaise: Balod)..." 
-                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-                    <datalist id="district-list">
-                        <!-- Dynamic options will load here -->
-                    </datalist>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">District Chuniye:</label>
+                    <select id="district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                        <option value="">-- District Select Karein --</option>
+                        <option value="Balod">Balod</option>
+                        <option value="Baloda Bazar">Baloda Bazar</option>
+                        <option value="Balrampur">Balrampur</option>
+                        <option value="Bastar">Bastar</option>
+                        <option value="Bemetara">Bemetara</option>
+                        <option value="Bijapur">Bijapur</option>
+                        <option value="Bilaspur">Bilaspur</option>
+                        <option value="Dantewada">Dantewada</option>
+                        <option value="Dhamtari">Dhamtari</option>
+                        <option value="Durg">Durg</option>
+                        <option value="Gariaband">Gariaband</option>
+                        <option value="Gaurela-Pendra-Marwahi">Gaurela-Pendra-Marwahi</option>
+                        <option value="Janjgir-Champa">Janjgir-Champa</option>
+                        <option value="Jashpur">Jashpur</option>
+                        <option value="Kabirdham">Kabirdham (Kawardha)</option>
+                        <option value="Kanker">Kanker</option>
+                        <option value="Khairagarh-Chhuikhadan-Gandai">Khairagarh-Chhuikhadan-Gandai</option>
+                        <option value="Kondagaon">Kondagaon</option>
+                        <option value="Korba">Korba</option>
+                        <option value="Koriya">Koriya</option>
+                        <option value="Mahasamund">Mahasamund</option>
+                        <option value="Manendragarh-Chirmiri-Bharatpur">Manendragarh-Chirmiri-Bharatpur</option>
+                        <option value="Mohla-Manpur-Ambagarh Chowki">Mohla-Manpur-Ambagarh Chowki</option>
+                        <option value="Mungeli">Mungeli</option>
+                        <option value="Narayanpur">Narayanpur</option>
+                        <option value="Raigarh">Raigarh</option>
+                        <option value="Raipur">Raipur</option>
+                        <option value="Rajnandgaon">Rajnandgaon</option>
+                        <option value="Sakti">Sakti</option>
+                        <option value="Sarangarh-Bilaigarh">Sarangarh-Bilaigarh</option>
+                        <option value="Sukma">Sukma</option>
+                        <option value="Surajpur">Surajpur</option>
+                        <option value="Surguja">Surguja</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Starting Point Select Karein:</label>
@@ -62,19 +92,25 @@
         <!-- Welcome Message -->
         <div id="welcome-msg" class="bg-white p-8 rounded-xl text-center text-gray-500 shadow-sm border border-gray-100">
             <p class="text-lg font-medium text-gray-700">👋 Namaste!</p>
-            <p class="text-sm text-gray-500 mt-1">Box me <b>District</b> ka naam type karna shuru karein aur starting point chun kar button dabayein.</p>
+            <p class="text-sm text-gray-500 mt-1">Dropdown se apna <b>District</b> chun kar aur starting point select karke button dabayein.</p>
         </div>
 
         <!-- Content & Table Container -->
         <div id="content-container" class="hidden space-y-6">
-            <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col lg:flex-row justify-between items-center gap-4">
                 <div>
                     <h2 id="list-title" class="text-lg font-bold text-gray-800">Nearest Route List</h2>
                     <p class="text-xs text-gray-500">Verified centers ko hata kar baaki unverified me se nearest 15 centers.</p>
                 </div>
-                <button onclick="openGoogleMapsRoute()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-lg shadow transition flex items-center gap-2">
-                    🗺️ Open Full Route in Google Maps
-                </button>
+                <!-- Dual Route Buttons -->
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="openGoogleMapsRoutePart(1)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
+                        🗺️ Route Part 1 (Centers 1-8)
+                    </button>
+                    <button id="btn-part2" onclick="openGoogleMapsRoutePart(2)" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
+                        🗺️ Route Part 2 (Centers 9-15)
+                    </button>
+                </div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -109,26 +145,6 @@
         let currentStartLat = null;
         let currentStartLon = null;
 
-        // Page load hote hi datalist ke liye districts background me load karna
-        window.onload = async function() {
-            try {
-                let response = await fetch(`${API_URL}?getAction=districts`);
-                let result = await response.json();
-                if (result.success && result.districts) {
-                    let dataList = document.getElementById('district-list');
-                    result.districts.forEach(d => {
-                        let opt = document.createElement('option');
-                        opt.value = d;
-                        dataList.appendChild(opt);
-                    });
-                    document.getElementById('total-badge').innerText = "Ready";
-                }
-            } catch (e) {
-                console.error(e);
-                document.getElementById('total-badge').innerText = "Error loading districts";
-            }
-        };
-
         function toggleStartInput() {
             let type = document.getElementById('start-type').value;
             let manualBox = document.getElementById('manual-box');
@@ -140,9 +156,9 @@
         }
 
         function loadNearestCenters() {
-            let district = document.getElementById('district-input').value.trim();
+            let district = document.getElementById('district-select').value;
             if (!district) {
-                alert('Kripya district ka naam type karke chuniye!');
+                alert('Kripya dropdown se ek valid district chuniye!');
                 return;
             }
 
@@ -202,6 +218,14 @@
                         return;
                     }
 
+                    // Toggle Part 2 button visibility if centers are less than or equal to 8
+                    let btnPart2 = document.getElementById('btn-part2');
+                    if (fetchedCenters.length <= 8) {
+                        btnPart2.classList.add('hidden');
+                    } else {
+                        btnPart2.classList.remove('hidden');
+                    }
+
                     let tableRows = fetchedCenters.map((c, index) => `
                         <tr class="hover:bg-gray-50 border-b">
                             <td class="px-4 py-3 text-sm text-gray-700">${index + 1}</td>
@@ -232,15 +256,41 @@
             }
         }
 
-        function openGoogleMapsRoute() {
+        function openGoogleMapsRoutePart(part) {
             if (fetchedCenters.length === 0) return;
 
-            let points = [`${currentStartLat},${currentStartLon}`];
-            fetchedCenters.forEach(c => {
-                if (c.lat && c.lon) {
-                    points.push(`${c.lat},${c.lon}`);
+            let points = [];
+            
+            if (part === 1) {
+                // Part 1: Current location + Centers 1 to 8
+                points.push(`${currentStartLat},${currentStartLon}`);
+                let sliceEnd = Math.min(fetchedCenters.length, 8);
+                for (let i = 0; i < sliceEnd; i++) {
+                    if (fetchedCenters[i].lat && fetchedCenters[i].lon) {
+                        points.push(`${fetchedCenters[i].lat},${fetchedCenters[i].lon}`);
+                    }
                 }
-            });
+            } else {
+                // Part 2: Start from the 8th center (or current location if preferred) + Centers 9 to 15
+                // Yahan hum 8th center ko starting point banate hain taaki continuity bani rahe
+                let startPointIdx = 7; // Index 7 means 8th center
+                if (fetchedCenters[startPointIdx] && fetchedCenters[startPointIdx].lat && fetchedCenters[startPointIdx].lon) {
+                    points.push(`${fetchedCenters[startPointIdx].lat},${fetchedCenters[startPointIdx].lon}`);
+                } else {
+                    points.push(`${currentStartLat},${currentStartLon}`);
+                }
+
+                for (let i = 8; i < fetchedCenters.length; i++) {
+                    if (fetchedCenters[i].lat && fetchedCenters[i].lon) {
+                        points.push(`${fetchedCenters[i].lat},${fetchedCenters[i].lon}`);
+                    }
+                }
+            }
+
+            if (points.length <= 1) {
+                alert('Route ke liye sufficient coordinates available nahi hain.');
+                return;
+            }
 
             let routeUrl = `https://www.google.com/maps/dir/${points.join('/')}`;
             window.open(routeUrl, '_blank');
