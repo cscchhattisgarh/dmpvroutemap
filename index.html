@@ -86,7 +86,7 @@
         <!-- Loading Spinner -->
         <div id="loader" class="text-center py-12 hidden">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
-            <p class="text-gray-500 mt-2">Nearest locations calculate ho rahi hain...</p>
+            <p class="text-gray-500 mt-2">Smart sequential route calculate ho raha hai...</p>
         </div>
 
         <!-- Welcome Message -->
@@ -99,8 +99,8 @@
         <div id="content-container" class="hidden space-y-6">
             <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col lg:flex-row justify-between items-center gap-4">
                 <div>
-                    <h2 id="list-title" class="text-lg font-bold text-gray-800">Nearest Route List</h2>
-                    <p class="text-xs text-gray-500">Verified centers ko hata kar baaki unverified me se nearest 15 centers.</p>
+                    <h2 id="list-title" class="text-lg font-bold text-gray-800">Smart Sequential Route List</h2>
+                    <p class="text-xs text-gray-500">Nearest Neighbor chaining algorithm dwara optimized route.</p>
                 </div>
                 <!-- Dual Route Buttons -->
                 <div class="flex flex-wrap gap-2">
@@ -123,7 +123,7 @@
                                 <th class="px-4 py-3">CSC ID</th>
                                 <th class="px-4 py-3">VLE Name</th>
                                 <th class="px-4 py-3">Mobile</th>
-                                <th class="px-4 py-3">Approx Distance</th>
+                                <th class="px-4 py-3">Leg Distance</th>
                                 <th class="px-4 py-3">Photo</th>
                                 <th class="px-4 py-3">Location</th>
                             </tr>
@@ -192,6 +192,51 @@
             }
         }
 
+        // Haversine formula distance calculate karne ke liye
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            var R = 6371; 
+            var dLat = (lat2 - lat1) * Math.PI / 180;
+            var dLon = (lon2 - lon1) * Math.PI / 180;
+            var a = 
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon / 2) * Math.sin(dLon / 2); 
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+            return R * c; 
+        }
+
+        // Nearest Neighbor (TSP Chaining) Algorithm
+        function getChainedRoute(startLat, startLon, centers, limit = 15) {
+            let unvisited = [...centers];
+            let chained = [];
+            let currLat = startLat;
+            let currLon = startLon;
+
+            while (unvisited.length > 0 && chained.length < limit) {
+                let nearestIdx = -1;
+                let minDst = Infinity;
+
+                for (let i = 0; i < unvisited.length; i++) {
+                    let dist = calculateDistance(currLat, currLon, unvisited[i].lat, unvisited[i].lon);
+                    if (dist < minDst) {
+                        minDst = dist;
+                        nearestIdx = i;
+                    }
+                }
+
+                if (nearestIdx !== -1) {
+                    let nextCenter = unvisited.splice(nearestIdx, 1)[0];
+                    nextCenter.distance = minDst; // Pichle point se distance
+                    chained.push(nextCenter);
+                    currLat = nextCenter.lat;
+                    currLon = nextCenter.lon;
+                } else {
+                    break;
+                }
+            }
+            return chained;
+        }
+
         async function fetchDataFromAPI(district, lat, lon) {
             const loader = document.getElementById('loader');
             const welcomeMsg = document.getElementById('welcome-msg');
@@ -203,20 +248,23 @@
             loader.classList.remove('hidden');
 
             try {
-                let url = `${API_URL}?district=${encodeURIComponent(district)}&lat=${lat}&lon=${lon}&limit=15`;
+                let url = `${API_URL}?district=${encodeURIComponent(district)}&lat=${lat}&lon=${lon}&limit=100`; // Zyada fetch karenge taaki chain badhiya bane
                 let response = await fetch(url);
                 let result = await response.json();
 
                 loader.classList.add('hidden');
 
                 if (result.success) {
-                    fetchedCenters = result.centers;
-                    badge.innerText = `Unverified Remaining: ${result.totalDistrictUnverified} | Showing Nearest: ${fetchedCenters.length}`;
+                    let rawCenters = result.centers;
+                    badge.innerText = `Unverified Remaining: ${result.totalDistrictUnverified}`;
                     
-                    if (fetchedCenters.length === 0) {
+                    if (rawCenters.length === 0) {
                         alert('Is district me verification ke liye koi unverified center nahi bacha hai!');
                         return;
                     }
+
+                    // Yahan Nearest Neighbor Algorithm call ho raha hai sequential routing ke liye
+                    fetchedCenters = getChainedRoute(lat, lon, rawCenters, 15);
 
                     // Toggle Part 2 button visibility if centers are less than or equal to 8
                     let btnPart2 = document.getElementById('btn-part2');
@@ -228,7 +276,7 @@
 
                     let tableRows = fetchedCenters.map((c, index) => `
                         <tr class="hover:bg-gray-50 border-b">
-                            <td class="px-4 py-3 text-sm text-gray-700">${index + 1}</td>
+                            <td class="px-4 py-3 text-sm text-gray-700 font-bold">${index + 1}</td>
                             <td class="px-4 py-3 text-sm font-medium text-gray-900">${c.block}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">${c.cscId}</td>
                             <td class="px-4 py-3 text-sm font-semibold text-gray-800">${c.vleName}</td>
@@ -244,7 +292,7 @@
                     `).join('');
 
                     document.getElementById('table-body').innerHTML = tableRows;
-                    document.getElementById('list-title').innerText = `${district.toUpperCase()} - 15 Nearest Unverified Centers`;
+                    document.getElementById('list-title', `${district.toUpperCase()} - Smart Sequential Route (15 Centers)`);
                     contentContainer.classList.remove('hidden');
                 } else {
                     alert('Data load karne me samasya aayi.');
@@ -262,7 +310,7 @@
             let points = [];
             
             if (part === 1) {
-                // Part 1: Current location + Centers 1 to 8
+                // Part 1: Current location + Sequential Centers 1 to 8
                 points.push(`${currentStartLat},${currentStartLon}`);
                 let sliceEnd = Math.min(fetchedCenters.length, 8);
                 for (let i = 0; i < sliceEnd; i++) {
@@ -271,8 +319,7 @@
                     }
                 }
             } else {
-                // Part 2: Start from the 8th center (or current location if preferred) + Centers 9 to 15
-                // Yahan hum 8th center ko starting point banate hain taaki continuity bani rahe
+                // Part 2: Start from the 8th center + Sequential Centers 9 to 15
                 let startPointIdx = 7; // Index 7 means 8th center
                 if (fetchedCenters[startPointIdx] && fetchedCenters[startPointIdx].lat && fetchedCenters[startPointIdx].lon) {
                     points.push(`${fetchedCenters[startPointIdx].lat},${fetchedCenters[startPointIdx].lon}`);
