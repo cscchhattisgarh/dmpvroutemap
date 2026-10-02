@@ -5,14 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DM Smart Nearest Route Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS for Mini Map Preview -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        /* Sunlight Mode High-Contrast Styles */
+        body.sunlight-mode {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+        body.sunlight-mode header {
+            background-color: #000000 !important;
+        }
+        body.sunlight-mode .bg-white {
+            background-color: #ffffe0 !important; /* Soft yellow tint for sunlight readability */
+            border: 2px solid #000000 !important;
+        }
+        body.sunlight-mode table th {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+        }
+        body.sunlight-mode table td {
+            color: #000000 !important;
+            font-weight: 600;
+        }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans">
+<body class="bg-gray-50 min-h-screen font-sans transition-colors duration-200">
 
     <!-- Header -->
     <header class="bg-blue-600 text-white shadow-md">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-3">
             <h1 class="text-xl font-bold">🗺️ DM Smart Nearest Route Planner</h1>
-            <span id="total-badge" class="bg-blue-700 text-xs px-3 py-1 rounded-full font-semibold">Ready</span>
+            <div class="flex items-center gap-3">
+                <button onclick="toggleSunlightMode()" id="sunlight-btn" class="bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs px-3 py-1.5 rounded-full shadow transition flex items-center gap-1">
+                    ☀️ Sunlight Mode
+                </button>
+                <span id="total-badge" class="bg-blue-700 text-xs px-3 py-1.5 rounded-full font-semibold">Ready</span>
+            </div>
         </div>
     </header>
 
@@ -108,9 +137,15 @@
                         🗺️ Route Part 1 (Centers 1-8)
                     </button>
                     <button id="btn-part2" onclick="openGoogleMapsRoutePart(2)" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
-                        🗺️️ Route Part 2 (Centers 9-15)
+                        🗺 Route Part 2 (Centers 9-15)
                     </button>
                 </div>
+            </div>
+
+            <!-- In-App Mini Map Preview Box -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                <h3 class="text-sm font-bold text-gray-700 mb-2">📍 Live Route Preview Map</h3>
+                <div id="mini-map" class="w-full h-72 rounded-lg z-10"></div>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -122,7 +157,7 @@
                                 <th class="px-4 py-3">Block</th>
                                 <th class="px-4 py-3">CSC ID</th>
                                 <th class="px-4 py-3">VLE Name</th>
-                                <th class="px-4 py-3">Mobile</th>
+                                <th class="px-4 py-3">Mobile & Direct Connect</th>
                                 <th class="px-4 py-3">Leg Distance</th>
                                 <th class="px-4 py-3">Photo</th>
                                 <th class="px-4 py-3">Location</th>
@@ -138,12 +173,30 @@
 
     </main>
 
+    <!-- Leaflet JS for Mini Map Preview -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <!-- JavaScript Logic -->
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzCIVhYltXttOFEVta3MGprydflFx1yosaEYgYB7ujuaBsd5s7zNnnPAhFeSc2F4gYz/exec";
         let fetchedCenters = [];
         let currentStartLat = null;
         let currentStartLon = null;
+        let mapInstance = null;
+
+        function toggleSunlightMode() {
+            document.body.classList.toggle('sunlight-mode');
+            let btn = document.getElementById('sunlight-btn');
+            if (document.body.classList.contains('sunlight-mode')) {
+                btn.innerText = "🌙 Normal Mode";
+                btn.classList.remove('bg-amber-500', 'text-black');
+                btn.classList.add('bg-black', 'text-white');
+            } else {
+                btn.innerText = "☀️ Sunlight Mode";
+                btn.classList.remove('bg-black', 'text-white');
+                btn.classList.add('bg-amber-500', 'text-black');
+            }
+        }
 
         function toggleStartInput() {
             let type = document.getElementById('start-type').value;
@@ -226,7 +279,7 @@
 
                 if (nearestIdx !== -1) {
                     let nextCenter = unvisited.splice(nearestIdx, 1)[0];
-                    nextCenter.distance = minDst; // Pichle point se distance
+                    nextCenter.distance = minDst; 
                     chained.push(nextCenter);
                     currLat = nextCenter.lat;
                     currLon = nextCenter.lon;
@@ -248,7 +301,6 @@
             loader.classList.remove('hidden');
 
             try {
-                // FIXED: 'action=dmRoute' parameter added here so Apps Script backend routes properly
                 let url = `${API_URL}?action=dmRoute&district=${encodeURIComponent(district)}&lat=${lat}&lon=${lon}&limit=100`; 
                 let response = await fetch(url);
                 let result = await response.json();
@@ -264,10 +316,8 @@
                         return;
                     }
 
-                    // Yahan Nearest Neighbor Algorithm call ho raha hai sequential routing ke liye
                     fetchedCenters = getChainedRoute(lat, lon, rawCenters, 15);
 
-                    // Toggle Part 2 button visibility if centers are less than or equal to 8
                     let btnPart2 = document.getElementById('btn-part2');
                     if (fetchedCenters.length <= 8) {
                         btnPart2.classList.add('hidden');
@@ -281,7 +331,15 @@
                             <td class="px-4 py-3 text-sm font-medium text-gray-900">${c.block}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">${c.cscId}</td>
                             <td class="px-4 py-3 text-sm font-semibold text-gray-800">${c.vleName}</td>
-                            <td class="px-4 py-3 text-sm text-gray-600">${c.mobileNo}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">
+                                <div class="flex items-center gap-2">
+                                    <span>${c.mobileNo || 'N/A'}</span>
+                                    ${c.mobileNo ? `
+                                        <a href="tel:${c.mobileNo}" class="bg-green-100 text-green-700 p-1.5 rounded-full hover:bg-green-200 transition" title="Direct Call">📞</a>
+                                        <a href="https://wa.me/91${c.mobileNo}?text=Namaste%20VLE%20ji,%20hum%20aapke%20center%20verification%20ke%20liye%20pahunche%20rahe%20hain." target="_blank" class="bg-emerald-100 text-emerald-700 p-1.5 rounded-full hover:bg-emerald-200 transition" title="WhatsApp Message">💬</a>
+                                    ` : ''}
+                                </div>
+                            </td>
                             <td class="px-4 py-3 text-sm font-medium text-emerald-600">${c.distance ? c.distance.toFixed(2) + ' km' : 'N/A'}</td>
                             <td class="px-4 py-3 text-sm">
                                 ${c.photoLink ? `<a href="${c.photoLink}" target="_blank" class="text-blue-600 hover:underline font-medium">View Photo</a>` : '<span class="text-gray-400">No Photo</span>'}
@@ -293,9 +351,12 @@
                     `).join('');
 
                     document.getElementById('table-body').innerHTML = tableRows;
-                    // FIXED: Corrected title assignment syntax
                     document.getElementById('list-title').innerText = `${district.toUpperCase()} - Smart Sequential Route (15 Centers)`;
                     contentContainer.classList.remove('hidden');
+
+                    // Render Mini Map Preview
+                    renderMiniMap(lat, lon, fetchedCenters);
+
                 } else {
                     alert('Data load karne me samasya aayi.');
                 }
@@ -306,13 +367,45 @@
             }
         }
 
+        function renderMiniMap(startLat, startLon, centers) {
+            setTimeout(() => {
+                if (mapInstance) {
+                    mapInstance.remove();
+                }
+
+                mapInstance = L.map('mini-map').setView([startLat, startLon], 11);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(mapInstance);
+
+                // Start Marker
+                L.marker([startLat, startLon], {
+                    title: "Start Point"
+                }).addTo(mapInstance).bindPopup("<b>Starting Point</b>").openPopup();
+
+                let latlngs = [[startLat, startLon]];
+
+                centers.forEach((c, idx) => {
+                    if (c.lat && c.lon) {
+                        latlngs.push([c.lat, c.lon]);
+                        L.marker([c.lat, c.lon]).addTo(mapInstance)
+                            .bindPopup(`<b>#${idx+1}: ${c.vleName}</b><br>${c.block} (${c.cscId})`);
+                    }
+                });
+
+                // Polyline connecting the route
+                let polyline = L.polyline(latlngs, {color: 'blue', weight: 4, opacity: 0.7}).addTo(mapInstance);
+                mapInstance.fitBounds(polyline.getBounds());
+            }, 300);
+        }
+
         function openGoogleMapsRoutePart(part) {
             if (fetchedCenters.length === 0) return;
 
             let points = [];
             
             if (part === 1) {
-                // Part 1: Current location + Sequential Centers 1 to 8
                 points.push(`${currentStartLat},${currentStartLon}`);
                 let sliceEnd = Math.min(fetchedCenters.length, 8);
                 for (let i = 0; i < sliceEnd; i++) {
@@ -321,8 +414,7 @@
                     }
                 }
             } else {
-                // Part 2: Start from the 8th center + Sequential Centers 9 to 15
-                let startPointIdx = 7; // Index 7 means 8th center
+                let startPointIdx = 7; 
                 if (fetchedCenters[startPointIdx] && fetchedCenters[startPointIdx].lat && fetchedCenters[startPointIdx].lon) {
                     points.push(`${fetchedCenters[startPointIdx].lat},${fetchedCenters[startPointIdx].lon}`);
                 } else {
