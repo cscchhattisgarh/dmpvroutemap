@@ -12,6 +12,17 @@
         body.sunlight-mode .bg-white { background-color: #ffffe0 !important; border: 2px solid #000000 !important; }
         body.sunlight-mode table th { background-color: #000000 !important; color: #ffffff !important; }
         body.sunlight-mode table td { color: #000000 !important; font-weight: 600; }
+        
+        /* Image Zoom Smooth Transition */
+        #modal-img-tag {
+            transition: transform 0.2s ease;
+            transform: scale(1);
+            cursor: zoom-in;
+        }
+        #modal-img-tag.zoomed {
+            transform: scale(2);
+            cursor: zoom-out;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
@@ -248,7 +259,7 @@
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <button onclick="openGoogleMapsRoutePart(1)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm">
-                            🗺️️ Route Part 1 (Centers 1-8)
+                            🗺 Route Part 1 (Centers 1-8)
                         </button>
                         <button id="btn-part2" onclick="openGoogleMapsRoutePart(2)" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm">
                             🗺 Route Part 2 (Centers 9-15)
@@ -286,11 +297,11 @@
         </div>
     </main>
 
-    <!-- IMAGE PREVIEW MODAL (Lightbox) -->
+    <!-- IMAGE PREVIEW MODAL (Lightbox with Zoom Click) -->
     <div id="image-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden" onclick="closeImageModal()">
-        <div class="relative max-w-3xl max-h-screen p-2" onclick="event.stopPropagation()">
-            <button onclick="closeImageModal()" class="absolute -top-4 -right-4 bg-red-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:bg-red-700 text-sm">✕</button>
-            <img id="modal-img-tag" src="" alt="Large Preview" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl border-2 border-white object-contain">
+        <div class="relative max-w-4xl max-h-screen p-2 flex items-center justify-center overflow-hidden" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute top-2 right-2 bg-red-600 text-white font-bold rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:bg-red-700 text-sm z-20">✕</button>
+            <img id="modal-img-tag" src="" alt="Large Preview" onclick="toggleImageZoom(event)" class="max-w-full max-h-[85vh] rounded-lg shadow-2xl border-2 border-white object-contain transition-transform duration-200">
         </div>
     </div>
 
@@ -349,7 +360,7 @@
             }
         }
 
-        // 1. Direct Drive URL Converter Logic
+        // Direct Drive URL Converter Logic
         function getDirectDriveUrl(url) {
             if (!url) return '';
             let fileId = '';
@@ -370,7 +381,7 @@
             return url;
         }
 
-        // 2. Thumbnail Rendering Functions
+        // Thumbnail Rendering Functions
         function renderThumbnailHtml(photoLink) {
             if (!photoLink) return '<span class="text-gray-400 text-xs">No Photo</span>';
             let directUrl = getDirectDriveUrl(photoLink);
@@ -382,16 +393,26 @@
             `;
         }
 
-        // 3. Modal Functions (Photo QC, Approval & Rejection)
+        // Modal Functions (Photo QC, Approval & Rejection)
         function openImageModal(imgUrl) {
             let modal = document.getElementById('image-modal');
             let imgTag = document.getElementById('modal-img-tag');
+            imgTag.classList.remove('zoomed'); // Reset zoom state on open
             imgTag.src = getDirectDriveUrl(imgUrl);
             modal.classList.remove('hidden');
         }
 
         function closeImageModal() {
+            let imgTag = document.getElementById('modal-img-tag');
+            imgTag.classList.remove('zoomed');
             document.getElementById('image-modal').classList.add('hidden');
+        }
+
+        // Toggle Zoom function strictly for the image inside modal
+        function toggleImageZoom(event) {
+            event.stopPropagation();
+            let imgTag = document.getElementById('modal-img-tag');
+            imgTag.classList.toggle('zoomed');
         }
 
         function openRejectModal(cscId) {
@@ -437,7 +458,6 @@
                 let result = await response.json();
                 document.getElementById('qc-loader').classList.add('hidden');
                 if (result.success) {
-                    // Update local state
                     let item = allQcCenters.find(c => c.cscId === cscId);
                     if (item) {
                         item.qcStatus = status;
@@ -617,15 +637,9 @@
                 alert('Kripya pehle district select karein!');
                 return;
             }
-            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('loader').classList.add('hidden');
             document.getElementById('welcome-msg').classList.add('hidden');
-            document.getElementById('content-container').classList.add('hidden');
-
-            // Route planner dummy/placeholder functions for integration check
-            setTimeout(() => {
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('content-container').classList.remove('hidden');
-            }, 1000);
+            document.getElementById('content-container').classList.remove('hidden');
         }
 
         function openGoogleMapsRoutePart(part) {
