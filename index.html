@@ -34,7 +34,7 @@
                 📷 1. Photo QC & Approval
             </button>
             <button onclick="switchTab('route')" id="tab-route-btn" class="pb-3 px-4 font-semibold text-gray-500 hover:text-gray-800 transition">
-                🗺️️ 2. Smart Route Planner
+                🗺 2. Smart Route Planner
             </button>
         </div>
     </div>
@@ -44,12 +44,12 @@
         <!-- TAB 1: PHOTO QC & APPROVAL -->
         <div id="section-qc" class="space-y-6">
             <div class="bg-white p-6 rounded-xl shadow-sm space-y-4 border border-gray-200">
-                <h2 class="text-lg font-bold text-gray-800">District VLE Photo Verification (QC)</h2>
+                <h2 class="text-lg font-bold text-gray-800">VLE's Branding Photo (QC)</h2>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Apna District Chuniye:</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select District:</label>
                         <select id="qc-district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
-                            <option value="">-- District Select Karein --</option>
+                            <option value="ALL">🌐 All Districts</option>
                             <option value="Balod">Balod</option>
                             <option value="Baloda Bazar">Baloda Bazar</option>
                             <option value="Balrampur">Balrampur</option>
@@ -101,22 +101,31 @@
 
             <!-- Search & Filters Bar -->
             <div id="qc-controls" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hidden flex flex-wrap gap-4 items-center justify-between">
-                <div class="w-full sm:w-72">
-                    <input type="text" id="qc-search" onkeyup="filterQCData()" placeholder="🔍 Search CSC ID or Mobile No..." class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none">
+                <div class="w-full sm:w-64">
+                    <input type="text" id="qc-search" onkeyup="filterQCData()" placeholder="🔍 Search CSC ID or Mobile..." class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none">
                 </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-sm font-semibold text-gray-600">Status Filter:</label>
-                    <select id="qc-status-filter" onchange="filterQCData()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-                        <option value="ALL">All</option>
-                        <option value="PV Done">PV Done</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Rejected">Rejected</option>
-                        <option value="Pending">Pending</option>
-                    </select>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-semibold text-gray-600">QC Status:</label>
+                        <select id="qc-status-filter" onchange="filterQCData()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                            <option value="ALL">All</option>
+                            <option value="PV Done">PV Done</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="Pending">Pending</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-semibold text-gray-600">Priority:</label>
+                        <select id="qc-priority-filter" onchange="filterQCData()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                            <option value="ALL">All Priorities</option>
+                            <!-- Dynamic Priority Options -->
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <!-- QC Table Container with Borders -->
+            <!-- QC Table Container -->
             <div id="qc-content-container" class="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse border border-gray-300">
@@ -126,8 +135,8 @@
                                 <th class="border border-gray-300 px-3 py-3">Block</th>
                                 <th class="border border-gray-300 px-3 py-3">CSC ID</th>
                                 <th class="border border-gray-300 px-3 py-3">VLE Name & Mobile</th>
-                                <th class="border border-gray-300 px-3 py-3">Branding Photo</th>
                                 <th class="border border-gray-300 px-3 py-3">Location</th>
+                                <th class="border border-gray-300 px-3 py-3">Branding Photo</th>
                                 <th class="border border-gray-300 px-3 py-3">Upload Date & Time</th>
                                 <th class="border border-gray-300 px-3 py-3">Priority</th>
                                 <th class="border border-gray-300 px-3 py-3">Current Status</th>
@@ -162,7 +171,7 @@
             <div class="bg-white p-6 rounded-xl shadow-sm space-y-4 border border-gray-200">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">District Chuniye:</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select District:</label>
                         <select id="district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
                             <option value="">-- District Select Karein --</option>
                             <option value="Balod">Balod</option>
@@ -263,8 +272,8 @@
                                     <th class="border border-gray-300 px-4 py-3">VLE Name</th>
                                     <th class="border border-gray-300 px-4 py-3">Mobile & Direct Connect</th>
                                     <th class="border border-gray-300 px-4 py-3">Leg Distance</th>
-                                    <th class="border border-gray-300 px-4 py-3">Branding Photo</th>
                                     <th class="border border-gray-300 px-4 py-3">Location</th>
+                                    <th class="border border-gray-300 px-4 py-3">Branding Photo</th>
                                 </tr>
                             </thead>
                             <tbody id="table-body" class="divide-y divide-gray-300">
@@ -334,11 +343,6 @@
 
         async function loadPendingQC() {
             let district = document.getElementById('qc-district-select').value;
-            if (!district) {
-                alert('Kripya apna district chuniye!');
-                return;
-            }
-
             document.getElementById('qc-loader').classList.remove('hidden');
 
             try {
@@ -350,6 +354,16 @@
                     allQcCenters = result.pendingCenters;
                     filteredQcCenters = [...allQcCenters];
                     currentPage = 1;
+
+                    // Populate priority dropdown filter
+                    let prioritySelect = document.getElementById('qc-priority-filter');
+                    let priorityOpts = `<option value="ALL">All Priorities</option>`;
+                    if (result.priorities) {
+                        result.priorities.forEach(p => {
+                            priorityOpts += `<option value="${p}">${p}</option>`;
+                        });
+                    }
+                    prioritySelect.innerHTML = priorityOpts;
 
                     document.getElementById('qc-controls').classList.remove('hidden');
                     document.getElementById('qc-content-container').classList.remove('hidden');
@@ -367,11 +381,13 @@
         function filterQCData() {
             let query = document.getElementById('qc-search').value.toLowerCase();
             let statusFilter = document.getElementById('qc-status-filter').value;
+            let priorityFilter = document.getElementById('qc-priority-filter').value;
 
             filteredQcCenters = allQcCenters.filter(c => {
                 let matchQuery = c.cscId.toLowerCase().includes(query) || c.mobileNo.toLowerCase().includes(query) || c.vleName.toLowerCase().includes(query);
                 let matchStatus = (statusFilter === 'ALL') || (c.qcStatus.toLowerCase() === statusFilter.toLowerCase());
-                return matchQuery && matchStatus;
+                let matchPriority = (priorityFilter === 'ALL') || (c.priority === priorityFilter);
+                return matchQuery && matchStatus && matchPriority;
             });
 
             currentPage = 1;
@@ -415,10 +431,10 @@
                             </div>
                         </td>
                         <td class="border border-gray-300 px-3 py-3 text-sm">
-                            <a href="${c.photoLink}" target="_blank" class="bg-blue-100 text-blue-700 px-3 py-1 rounded font-semibold hover:bg-blue-200 inline-block text-xs">🔍 View Photo</a>
+                            ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-100">🗺️ Map</a>` : 'N/A'}
                         </td>
                         <td class="border border-gray-300 px-3 py-3 text-sm">
-                            ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-100">🗺️ Map</a>` : 'N/A'}
+                            <a href="${c.photoLink}" target="_blank" class="bg-blue-100 text-blue-700 px-3 py-1 rounded font-semibold hover:bg-blue-200 inline-block text-xs">🔍 View Photo</a>
                         </td>
                         <td class="border border-gray-300 px-3 py-3 text-sm text-gray-600 text-xs">${c.uploadTimestamp || 'N/A'}</td>
                         <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-gray-700">${c.priority || 'N/A'}</td>
@@ -640,10 +656,10 @@
                             </td>
                             <td class="border border-gray-300 px-4 py-3 text-sm font-medium text-emerald-600">${c.distance ? c.distance.toFixed(2) + ' km' : 'N/A'}</td>
                             <td class="border border-gray-300 px-4 py-3 text-sm">
-                                ${c.photoLink ? `<a href="${c.photoLink}" target="_blank" class="text-blue-600 hover:underline font-medium">View Photo</a>` : '<span class="text-gray-400">No Photo</span>'}
+                                ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-100">Map</a>` : 'N/A'}
                             </td>
                             <td class="border border-gray-300 px-4 py-3 text-sm">
-                                ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-100">Map</a>` : 'N/A'}
+                                ${c.photoLink ? `<a href="${c.photoLink}" target="_blank" class="text-blue-600 hover:underline font-medium">View Photo</a>` : '<span class="text-gray-400">No Photo</span>'}
                             </td>
                         </tr>
                     `).join('');
