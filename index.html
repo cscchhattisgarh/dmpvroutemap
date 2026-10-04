@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DM Smart Nearest Route Planner</title>
+    <title>DM Portal - QC & Smart Route Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Leaflet CSS for Mini Map Preview -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -17,7 +17,7 @@
             background-color: #000000 !important;
         }
         body.sunlight-mode .bg-white {
-            background-color: #ffffe0 !important; /* Soft yellow tint for sunlight readability */
+            background-color: #ffffe0 !important;
             border: 2px solid #000000 !important;
         }
         body.sunlight-mode table th {
@@ -35,7 +35,7 @@
     <!-- Header -->
     <header class="bg-blue-600 text-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-3">
-            <h1 class="text-xl font-bold">🗺️ DM Smart Nearest Route Planner</h1>
+            <h1 class="text-xl font-bold">🏛️ DM Management Portal (CSC Chhattisgarh)</h1>
             <div class="flex items-center gap-3">
                 <button onclick="toggleSunlightMode()" id="sunlight-btn" class="bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs px-3 py-1.5 rounded-full shadow transition flex items-center gap-1">
                     ☀️ Sunlight Mode
@@ -45,128 +45,217 @@
         </div>
     </header>
 
+    <!-- Navigation Tabs -->
+    <div class="max-w-7xl mx-auto px-4 mt-4">
+        <div class="flex border-b border-gray-200 bg-white rounded-t-xl shadow-sm px-4 pt-2 gap-4">
+            <button onclick="switchTab('qc')" id="tab-qc-btn" class="pb-3 px-4 font-bold text-blue-600 border-b-2 border-blue-600 transition">
+                📷 1. Photo QC & Approval
+            </button>
+            <button onclick="switchTab('route')" id="tab-route-btn" class="pb-3 px-4 font-semibold text-gray-500 hover:text-gray-800 transition">
+                🗺️ 2. Smart Route Planner
+            </button>
+        </div>
+    </div>
+
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-6">
         
-        <!-- Input & Configuration Box -->
-        <div class="bg-white p-6 rounded-xl shadow-sm mb-6 space-y-4">
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">District Chuniye:</label>
-                    <select id="district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-                        <option value="">-- District Select Karein --</option>
-                        <option value="Balod">Balod</option>
-                        <option value="Baloda Bazar">Baloda Bazar</option>
-                        <option value="Balrampur">Balrampur</option>
-                        <option value="Bastar">Bastar</option>
-                        <option value="Bemetara">Bemetara</option>
-                        <option value="Bijapur">Bijapur</option>
-                        <option value="Bilaspur">Bilaspur</option>
-                        <option value="Dantewada">Dantewada</option>
-                        <option value="Dhamtari">Dhamtari</option>
-                        <option value="Durg">Durg</option>
-                        <option value="Gariyaband">Gariyaband</option>
-                        <option value="Gaurela-Pendra-Marwahi">Gaurela-Pendra-Marwahi</option>
-                        <option value="Janjgir-Champa">Janjgir-Champa</option>
-                        <option value="Jashpur">Jashpur</option>
-                        <option value="Kabirdham">Kabirdham (Kawardha)</option>
-                        <option value="Kanker">Kanker</option>
-                        <option value="Khairagarh-Chhuikhadan-Gandai">Khairagarh-Chhuikhadan-Gandai</option>
-                        <option value="Kondagaon">Kondagaon</option>
-                        <option value="Korba">Korba</option>
-                        <option value="Koriya">Koriya</option>
-                        <option value="Mahasamund">Mahasamund</option>
-                        <option value="Manendragarh-Chirmiri-Bharatpur">Manendragarh-Chirmiri-Bharatpur</option>
-                        <option value="Mohla-Manpur-Ambagarh Chowki">Mohla-Manpur-Ambagarh Chowki</option>
-                        <option value="Mungeli">Mungeli</option>
-                        <option value="Narayanpur">Narayanpur</option>
-                        <option value="Raigarh">Raigarh</option>
-                        <option value="Raipur">Raipur</option>
-                        <option value="Rajnandgaon">Rajnandgaon</option>
-                        <option value="Sakti">Sakti</option>
-                        <option value="Sarangarh-Bilaigarh">Sarangarh-Bilaigarh</option>
-                        <option value="Sukma">Sukma</option>
-                        <option value="Surajpur">Surajpur</option>
-                        <option value="Surguja">Surguja</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Starting Point Select Karein:</label>
-                    <select id="start-type" onchange="toggleStartInput()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
-                        <option value="gps">📍 Use My Current GPS Location</option>
-                        <option value="manual">✍️ Enter Manual Lat, Long</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Manual Lat-Long Input -->
-            <div id="manual-box" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <input type="text" id="manual-lat" placeholder="Latitude (jaise: 20.735)" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
-                <input type="text" id="manual-lon" placeholder="Longitude (jaise: 81.318)" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
-            </div>
-
-            <div class="flex justify-end pt-2">
-                <button onclick="loadNearestCenters()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition shadow">
-                    Find Nearest 15 Unverified Centers
-                </button>
-            </div>
-        </div>
-
-        <!-- Loading Spinner -->
-        <div id="loader" class="text-center py-12 hidden">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
-            <p class="text-gray-500 mt-2">Smart sequential route calculate ho raha hai...</p>
-        </div>
-
-        <!-- Welcome Message -->
-        <div id="welcome-msg" class="bg-white p-8 rounded-xl text-center text-gray-500 shadow-sm border border-gray-100">
-            <p class="text-lg font-medium text-gray-700">👋 Namaste!</p>
-            <p class="text-sm text-gray-500 mt-1">Dropdown se apna <b>District</b> chun kar aur starting point select karke button dabayein.</p>
-        </div>
-
-        <!-- Content & Table Container -->
-        <div id="content-container" class="hidden space-y-6">
-            <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col lg:flex-row justify-between items-center gap-4">
-                <div>
-                    <h2 id="list-title" class="text-lg font-bold text-gray-800">Smart Sequential Route List</h2>
-                    <p class="text-xs text-gray-500">Nearest Neighbor chaining algorithm dwara optimized route.</p>
-                </div>
-                <!-- Dual Route Buttons -->
-                <div class="flex flex-wrap gap-2">
-                    <button onclick="openGoogleMapsRoutePart(1)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
-                        🗺️ Route Part 1 (Centers 1-8)
-                    </button>
-                    <button id="btn-part2" onclick="openGoogleMapsRoutePart(2)" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
-                        🗺 Route Part 2 (Centers 9-15)
-                    </button>
+        <!-- ================= TAB 1: PHOTO QC & APPROVAL ================= -->
+        <div id="section-qc" class="space-y-6">
+            <div class="bg-white p-6 rounded-xl shadow-sm space-y-4">
+                <h2 class="text-lg font-bold text-gray-800">District VLE Photo Verification (QC)</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Apna District Chuniye:</label>
+                        <select id="qc-district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                            <option value="">-- District Select Karein --</option>
+                            <option value="Balod">Balod</option>
+                            <option value="Baloda Bazar">Baloda Bazar</option>
+                            <option value="Balrampur">Balrampur</option>
+                            <option value="Bastar">Bastar</option>
+                            <option value="Bemetara">Bemetara</option>
+                            <option value="Bijapur">Bijapur</option>
+                            <option value="Bilaspur">Bilaspur</option>
+                            <option value="Dantewada">Dantewada</option>
+                            <option value="Dhamtari">Dhamtari</option>
+                            <option value="Durg">Durg</option>
+                            <option value="Gariyaband">Gariyaband</option>
+                            <option value="Gaurela-Pendra-Marwahi">Gaurela-Pendra-Marwahi</option>
+                            <option value="Janjgir-Champa">Janjgir-Champa</option>
+                            <option value="Jashpur">Jashpur</option>
+                            <option value="Kabirdham">Kabirdham (Kawardha)</option>
+                            <option value="Kanker">Kanker</option>
+                            <option value="Khairagarh-Chhuikhadan-Gandai">Khairagarh-Chhuikhadan-Gandai</option>
+                            <option value="Kondagaon">Kondagaon</option>
+                            <option value="Korba">Korba</option>
+                            <option value="Koriya">Koriya</option>
+                            <option value="Mahasamund">Mahasamund</option>
+                            <option value="Manendragarh-Chirmiri-Bharatpur">Manendragarh-Chirmiri-Bharatpur</option>
+                            <option value="Mohla-Manpur-Ambagarh Chowki">Mohla-Manpur-Ambagarh Chowki</option>
+                            <option value="Mungeli">Mungeli</option>
+                            <option value="Narayanpur">Narayanpur</option>
+                            <option value="Raigarh">Raigarh</option>
+                            <option value="Raipur">Raipur</option>
+                            <option value="Rajnandgaon">Rajnandgaon</option>
+                            <option value="Sakti">Sakti</option>
+                            <option value="Sarangarh-Bilaigarh">Sarangarh-Bilaigarh</option>
+                            <option value="Sukma">Sukma</option>
+                            <option value="Surajpur">Surajpur</option>
+                            <option value="Surguja">Surguja</option>
+                        </select>
+                    </div>
+                    <div>
+                        <button onclick="loadPendingQC()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition shadow">
+                            Load Pending QC Photos
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- In-App Mini Map Preview Box -->
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-                <h3 class="text-sm font-bold text-gray-700 mb-2">📍 Live Route Preview Map</h3>
-                <div id="mini-map" class="w-full h-72 rounded-lg z-10"></div>
-            </div>
-
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <!-- QC Table Container -->
+            <div id="qc-content-container" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b">
                                 <th class="px-4 py-3">#</th>
-                                <th class="px-4 py-3">Block</th>
                                 <th class="px-4 py-3">CSC ID</th>
-                                <th class="px-4 py-3">VLE Name</th>
-                                <th class="px-4 py-3">Mobile & Direct Connect</th>
-                                <th class="px-4 py-3">Leg Distance</th>
-                                <th class="px-4 py-3">Photo</th>
-                                <th class="px-4 py-3">Location</th>
+                                <th class="px-4 py-3">VLE Name & Block</th>
+                                <th class="px-4 py-3">Mobile No</th>
+                                <th class="px-4 py-3">Branding Photo</th>
+                                <th class="px-4 py-3 text-center">Action (Approve / Reject)</th>
                             </tr>
                         </thead>
-                        <tbody id="table-body">
-                            <!-- Dynamic Rows -->
+                        <tbody id="qc-table-body">
+                            <!-- Dynamic QC Rows -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: SMART ROUTE PLANNER ================= -->
+        <div id="section-route" class="space-y-6 hidden">
+            <!-- Input & Configuration Box -->
+            <div class="bg-white p-6 rounded-xl shadow-sm space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">District Chuniye:</label>
+                        <select id="district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                            <option value="">-- District Select Karein --</option>
+                            <option value="Balod">Balod</option>
+                            <option value="Baloda Bazar">Baloda Bazar</option>
+                            <option value="Balrampur">Balrampur</option>
+                            <option value="Bastar">Bastar</option>
+                            <option value="Bemetara">Bemetara</option>
+                            <option value="Bijapur">Bijapur</option>
+                            <option value="Bilaspur">Bilaspur</option>
+                            <option value="Dantewada">Dantewada</option>
+                            <option value="Dhamtari">Dhamtari</option>
+                            <option value="Durg">Durg</option>
+                            <option value="Gariyaband">Gariyaband</option>
+                            <option value="Gaurela-Pendra-Marwahi">Gaurela-Pendra-Marwahi</option>
+                            <option value="Janjgir-Champa">Janjgir-Champa</option>
+                            <option value="Jashpur">Jashpur</option>
+                            <option value="Kabirdham">Kabirdham (Kawardha)</option>
+                            <option value="Kanker">Kanker</option>
+                            <option value="Khairagarh-Chhuikhadan-Gandai">Khairagarh-Chhuikhadan-Gandai</option>
+                            <option value="Kondagaon">Kondagaon</option>
+                            <option value="Korba">Korba</option>
+                            <option value="Koriya">Koriya</option>
+                            <option value="Mahasamund">Mahasamund</option>
+                            <option value="Manendragarh-Chirmiri-Bharatpur">Manendragarh-Chirmiri-Bharatpur</option>
+                            <option value="Mohla-Manpur-Ambagarh Chowki">Mohla-Manpur-Ambagarh Chowki</option>
+                            <option value="Mungeli">Mungeli</option>
+                            <option value="Narayanpur">Narayanpur</option>
+                            <option value="Raigarh">Raigarh</option>
+                            <option value="Raipur">Raipur</option>
+                            <option value="Rajnandgaon">Rajnandgaon</option>
+                            <option value="Sakti">Sakti</option>
+                            <option value="Sarangarh-Bilaigarh">Sarangarh-Bilaigarh</option>
+                            <option value="Sukma">Sukma</option>
+                            <option value="Surajpur">Surajpur</option>
+                            <option value="Surguja">Surguja</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Starting Point Select Karein:</label>
+                        <select id="start-type" onchange="toggleStartInput()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                            <option value="gps">📍 Use My Current GPS Location</option>
+                            <option value="manual">✍️ Enter Manual Lat, Long</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Manual Lat-Long Input -->
+                <div id="manual-box" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <input type="text" id="manual-lat" placeholder="Latitude (jaise: 20.735)" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                    <input type="text" id="manual-lon" placeholder="Longitude (jaise: 81.318)" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <button onclick="loadNearestCenters()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition shadow">
+                        Find Nearest 15 Unverified Centers
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="loader" class="text-center py-12 hidden">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+                <p class="text-gray-500 mt-2">Smart sequential route calculate ho raha hai...</p>
+            </div>
+
+            <!-- Welcome Message -->
+            <div id="welcome-msg" class="bg-white p-8 rounded-xl text-center text-gray-500 shadow-sm border border-gray-100">
+                <p class="text-lg font-medium text-gray-700">👋 Namaste!</p>
+                <p class="text-sm text-gray-500 mt-1">Dropdown se apna <b>District</b> chun kar aur starting point select karke button dabayein.</p>
+            </div>
+
+            <!-- Content & Table Container -->
+            <div id="content-container" class="hidden space-y-6">
+                <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col lg:flex-row justify-between items-center gap-4">
+                    <div>
+                        <h2 id="list-title" class="text-lg font-bold text-gray-800">Smart Sequential Route List</h2>
+                        <p class="text-xs text-gray-500">Nearest Neighbor chaining algorithm dwara optimized route.</p>
+                    </div>
+                    <!-- Dual Route Buttons -->
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="openGoogleMapsRoutePart(1)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
+                            🗺️ Route Part 1 (Centers 1-8)
+                        </button>
+                        <button id="btn-part2" onclick="openGoogleMapsRoutePart(2)" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
+                            🗺 Route Part 2 (Centers 9-15)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- In-App Mini Map Preview Box -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                    <h3 class="text-sm font-bold text-gray-700 mb-2">📍 Live Route Preview Map</h3>
+                    <div id="mini-map" class="w-full h-72 rounded-lg z-10"></div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b">
+                                    <th class="px-4 py-3">#</th>
+                                    <th class="px-4 py-3">Block</th>
+                                    <th class="px-4 py-3">CSC ID</th>
+                                    <th class="px-4 py-3">VLE Name</th>
+                                    <th class="px-4 py-3">Mobile & Direct Connect</th>
+                                    <th class="px-4 py-3">Leg Distance</th>
+                                    <th class="px-4 py-3">Photo</th>
+                                    <th class="px-4 py-3">Location</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -184,6 +273,109 @@
         let currentStartLon = null;
         let mapInstance = null;
 
+        // Tab Switcher Logic
+        function switchTab(tab) {
+            let qcSec = document.getElementById('section-qc');
+            let routeSec = document.getElementById('section-route');
+            let qcBtn = document.getElementById('tab-qc-btn');
+            let routeBtn = document.getElementById('tab-route-btn');
+
+            if (tab === 'qc') {
+                qcSec.classList.remove('hidden');
+                routeSec.classList.add('hidden');
+                qcBtn.className = "pb-3 px-4 font-bold text-blue-600 border-b-2 border-blue-600 transition";
+                routeBtn.className = "pb-3 px-4 font-semibold text-gray-500 hover:text-gray-800 transition";
+            } else {
+                qcSec.classList.add('hidden');
+                routeSec.classList.remove('hidden');
+                routeBtn.className = "pb-3 px-4 font-bold text-blue-600 border-b-2 border-blue-600 transition";
+                qcBtn.className = "pb-3 px-4 font-semibold text-gray-500 hover:text-gray-800 transition";
+            }
+        }
+
+        // Photo QC Functions
+        async function loadPendingQC() {
+            let district = document.getElementById('qc-district-select').value;
+            if (!district) {
+                alert('Kripya apna district chuniye!');
+                return;
+            }
+
+            try {
+                let response = await fetch(`${API_URL}?action=getPendingQC&district=${encodeURIComponent(district)}`);
+                let result = await response.json();
+
+                if (result.success) {
+                    let centers = result.pendingCenters;
+                    let tbody = document.getElementById('qc-table-body');
+                    let container = document.getElementById('qc-content-container');
+
+                    if (centers.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">Is district mein verification ke liye koi pending photo nahi hai!</td></tr>`;
+                        container.classList.remove('hidden');
+                        return;
+                    }
+
+                    let rowsHtml = centers.map((c, idx) => `
+                        <tr class="hover:bg-gray-50 border-b" id="row-${c.cscId}">
+                            <td class="px-4 py-3 text-sm font-bold text-gray-700">${idx + 1}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-blue-600">${c.cscId}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <div class="font-bold text-gray-800">${c.vleName}</div>
+                                <div class="text-xs text-gray-500">Block: ${c.block}</div>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-600">${c.mobileNo || 'N/A'}</td>
+                            <td class="px-4 py-3 text-sm">
+                                <a href="${c.photoLink}" target="_blank" class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-200 inline-block">🔍 View Photo</a>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-center">
+                                <div class="flex justify-center gap-2">
+                                    <button onclick="updateStatus('${c.cscId}', 'Approved')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded font-semibold text-xs shadow">Approve</button>
+                                    <button onclick="rejectPrompt('${c.cscId}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded font-semibold text-xs shadow">Reject</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                    tbody.innerHTML = rowsHtml;
+                    container.classList.remove('hidden');
+                } else {
+                    alert('Pending QC data load karne mein samasya aayi.');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Connection error! Kripya dobara koshish karein.');
+            }
+        }
+
+        async function updateStatus(cscId, status, reason = "") {
+            if (!confirm(`Kya aap pakka is VLE (${cscId}) ko ${status} karna chahte hain?`)) return;
+
+            try {
+                let url = `${API_URL}?action=updateQCStatus&cscId=${cscId}&status=${encodeURIComponent(status)}&reason=${encodeURIComponent(reason)}`;
+                let res = await fetch(url);
+                let json = await res.json();
+
+                if (json.success) {
+                    alert(`Status successfully updated to: ${status}`);
+                    document.getElementById(`row-${cscId}`).remove(); // Row hata do list se
+                } else {
+                    alert('Status update nahi ho paya.');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Server error update ke dauran.');
+            }
+        }
+
+        function rejectPrompt(cscId) {
+            let reason = prompt("Rejection ka reason daalein (jaise: Branding clear nahi hai):");
+            if (reason !== null) {
+                updateStatus(cscId, "Rejected", reason);
+            }
+        }
+
+        // Existing Route Planner Functions (Unchanged)
         function toggleSunlightMode() {
             document.body.classList.toggle('sunlight-mode');
             let btn = document.getElementById('sunlight-btn');
@@ -245,7 +437,6 @@
             }
         }
 
-        // Haversine formula distance calculate karne ke liye
         function calculateDistance(lat1, lon1, lat2, lon2) {
             var R = 6371; 
             var dLat = (lat2 - lat1) * Math.PI / 180;
@@ -258,7 +449,6 @@
             return R * c; 
         }
 
-        // Nearest Neighbor (TSP Chaining) Algorithm
         function getChainedRoute(startLat, startLon, centers, limit = 15) {
             let unvisited = [...centers];
             let chained = [];
@@ -354,7 +544,6 @@
                     document.getElementById('list-title').innerText = `${district.toUpperCase()} - Smart Sequential Route (15 Centers)`;
                     contentContainer.classList.remove('hidden');
 
-                    // Render Mini Map Preview
                     renderMiniMap(lat, lon, fetchedCenters);
 
                 } else {
@@ -379,7 +568,6 @@
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(mapInstance);
 
-                // Start Marker
                 L.marker([startLat, startLon], {
                     title: "Start Point"
                 }).addTo(mapInstance).bindPopup("<b>Starting Point</b>").openPopup();
@@ -394,7 +582,6 @@
                     }
                 });
 
-                // Polyline connecting the route
                 let polyline = L.polyline(latlngs, {color: 'blue', weight: 4, opacity: 0.7}).addTo(mapInstance);
                 mapInstance.fitBounds(polyline.getBounds());
             }, 300);
