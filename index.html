@@ -461,36 +461,39 @@
             await submitQcAction(cscId, 'Rejected', reason);
         }
 
-        async function submitQcAction(cscId, status, remark) {
-            document.getElementById('qc-loader').classList.remove('hidden');
-            try {
-                let response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'updateQcStatus',
-                        cscId: cscId,
-                        status: status,
-                        remark: remark
-                    })
-                });
-                let result = await response.json();
-                document.getElementById('qc-loader').classList.add('hidden');
-                if (result.success) {
-                    let item = allQcCenters.find(c => c.cscId === cscId);
-                    if (item) {
-                        item.qcStatus = status;
-                    }
-                    filterQCData();
-                    alert(`Success: Status successfully updated to ${status}!`);
-                } else {
-                    alert('Status update karne mein asafalta aayi: ' + (result.message || 'Unknown error'));
-                }
-            } catch (err) {
-                document.getElementById('qc-loader').classList.add('hidden');
-                console.error(err);
-                alert('Connection error! Kripya dobara koshish karein.');
+  async function submitQcAction(cscId, status, remark) {
+    document.getElementById('qc-loader').classList.remove('hidden');
+    try {
+        let response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8' // Yeh line CORS preflight error ko rokti hai
+            },
+            body: JSON.stringify({
+                action: 'updateQcStatus',
+                cscId: cscId,
+                status: status,
+                remark: remark
+            })
+        });
+        let result = await response.json();
+        document.getElementById('qc-loader').classList.add('hidden');
+        if (result.success) {
+            let item = allQcCenters.find(c => c.cscId === cscId);
+            if (item) {
+                item.qcStatus = status;
             }
+            filterQCData();
+            alert(`Success: Status successfully updated to ${status}!`);
+        } else {
+            alert('Status update karne mein asafalta aayi: ' + (result.message || 'Unknown error'));
         }
+    } catch (err) {
+        document.getElementById('qc-loader').classList.add('hidden');
+        console.error(err);
+        alert('Connection error! Kripya dobara koshish karein.');
+    }
+}
 
         async function loadPendingQC() {
             let district = document.getElementById('qc-district-select').value;
