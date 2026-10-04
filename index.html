@@ -495,41 +495,58 @@
     }
 }
 
-        async function loadPendingQC() {
-            let district = document.getElementById('qc-district-select').value;
-            document.getElementById('qc-loader').classList.remove('hidden');
+  async function loadPendingQC() {
+    let district = document.getElementById('qc-district-select').value;
+    document.getElementById('qc-loader').classList.remove('hidden');
 
-            try {
-                let response = await fetch(`${API_URL}?action=getPendingQC&district=${encodeURIComponent(district)}`);
-                let result = await response.json();
-                document.getElementById('qc-loader').classList.add('hidden');
+    try {
+        let response = await fetch(`${API_URL}?action=getPendingQC&district=${encodeURIComponent(district)}`);
+        let result = await response.json();
+        document.getElementById('qc-loader').classList.add('hidden');
 
-                if (result.success) {
-                    allQcCenters = result.pendingCenters;
-                    filteredQcCenters = [...allQcCenters];
-                    currentPage = 1;
+        if (result.success) {
+            allQcCenters = result.pendingCenters;
 
-                    let prioritySelect = document.getElementById('qc-priority-filter');
-                    let priorityOpts = `<option value="ALL">All Priorities</option>`;
-                    if (result.priorities) {
-                        result.priorities.forEach(p => {
-                            priorityOpts += `<option value="${p}">${p}</option>`;
-                        });
-                    }
-                    prioritySelect.innerHTML = priorityOpts;
-
-                    document.getElementById('qc-controls').classList.remove('hidden');
-                    document.getElementById('qc-content-container').classList.remove('hidden');
-                    renderQCTable();
-                } else {
-                    alert('Data load karne mein samasya aayi.');
+            // 💡 Sorting Logic: 1. CSC ID wise, 2. Oldest first (Time ascending)
+            allQcCenters.sort((a, b) => {
+                let idA = String(a.cscId || '').trim();
+                let idB = String(b.cscId || '').trim();
+                
+                // Pehle CSC ID se sort karein
+                if (idA !== idB) {
+                    return idA.localeCompare(idB);
                 }
-            } catch (err) {
-                document.getElementById('qc-loader').classList.add('hidden');
-                console.error(err);
-                alert('Connection error! Kripya dobara koshish karein.');
+                
+                // Agar CSC ID same hai, toh time ke anusar Oldest first (Ascending) sort karein
+                let timeA = a.uploadTimestamp ? new Date(a.uploadTimestamp).getTime() : 0;
+                let timeB = b.uploadTimestamp ? new Date(b.uploadTimestamp).getTime() : 0;
+                return timeA - timeB;
+            });
+
+            filteredQcCenters = [...allQcCenters];
+            currentPage = 1;
+
+            let prioritySelect = document.getElementById('qc-priority-filter');
+            let priorityOpts = `<option value="ALL">All Priorities</option>`;
+            if (result.priorities) {
+                result.priorities.forEach(p => {
+                    priorityOpts += `<option value="${p}">${p}</option>`;
+                });
             }
+            prioritySelect.innerHTML = priorityOpts;
+
+            document.getElementById('qc-controls').classList.remove('hidden');
+            document.getElementById('qc-content-container').classList.remove('hidden');
+            renderQCTable();
+        } else {
+            alert('Data load karne mein samasya aayi.');
         }
+    } catch (err) {
+        document.getElementById('qc-loader').classList.add('hidden');
+        console.error(err);
+        alert('Connection error! Kripya dobara koshish karein.');
+    }
+}
 
         function filterQCData() {
             let query = document.getElementById('qc-search').value.toLowerCase();
