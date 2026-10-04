@@ -5,39 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DM Portal - QC & Smart Route Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Leaflet CSS for Mini Map Preview -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        /* Sunlight Mode High-Contrast Styles */
-        body.sunlight-mode {
-            background-color: #ffffff !important;
-            color: #000000 !important;
-        }
-        body.sunlight-mode header {
-            background-color: #000000 !important;
-        }
-        body.sunlight-mode .bg-white {
-            background-color: #ffffe0 !important;
-            border: 2px solid #000000 !important;
-        }
-        body.sunlight-mode table th {
-            background-color: #000000 !important;
-            color: #ffffff !important;
-        }
-        body.sunlight-mode table td {
-            color: #000000 !important;
-            font-weight: 600;
-        }
+        body.sunlight-mode { background-color: #ffffff !important; color: #000000 !important; }
+        body.sunlight-mode header { background-color: #000000 !important; }
+        body.sunlight-mode .bg-white { background-color: #ffffe0 !important; border: 2px solid #000000 !important; }
+        body.sunlight-mode table th { background-color: #000000 !important; color: #ffffff !important; }
+        body.sunlight-mode table td { color: #000000 !important; font-weight: 600; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen font-sans transition-colors duration-200">
+<body class="bg-gray-50 min-h-screen font-sans">
 
-    <!-- Header -->
     <header class="bg-blue-600 text-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-3">
             <h1 class="text-xl font-bold">🏛️ DM Management Portal (CSC Chhattisgarh)</h1>
             <div class="flex items-center gap-3">
-                <button onclick="toggleSunlightMode()" id="sunlight-btn" class="bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs px-3 py-1.5 rounded-full shadow transition flex items-center gap-1">
+                <button onclick="toggleSunlightMode()" id="sunlight-btn" class="bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs px-3 py-1.5 rounded-full shadow transition">
                     ☀️ Sunlight Mode
                 </button>
                 <span id="total-badge" class="bg-blue-700 text-xs px-3 py-1.5 rounded-full font-semibold">Ready</span>
@@ -45,7 +28,6 @@
         </div>
     </header>
 
-    <!-- Navigation Tabs -->
     <div class="max-w-7xl mx-auto px-4 mt-4">
         <div class="flex border-b border-gray-200 bg-white rounded-t-xl shadow-sm px-4 pt-2 gap-4">
             <button onclick="switchTab('qc')" id="tab-qc-btn" class="pb-3 px-4 font-bold text-blue-600 border-b-2 border-blue-600 transition">
@@ -57,17 +39,16 @@
         </div>
     </div>
 
-    <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-6">
         
-        <!-- ================= TAB 1: PHOTO QC & APPROVAL ================= -->
+        <!-- TAB 1: PHOTO QC & APPROVAL -->
         <div id="section-qc" class="space-y-6">
-            <div class="bg-white p-6 rounded-xl shadow-sm space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-sm space-y-4 border border-gray-200">
                 <h2 class="text-lg font-bold text-gray-800">District VLE Photo Verification (QC)</h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Apna District Chuniye:</label>
-                        <select id="qc-district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                        <select id="qc-district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
                             <option value="">-- District Select Karein --</option>
                             <option value="Balod">Balod</option>
                             <option value="Baloda Bazar">Baloda Bazar</option>
@@ -105,43 +86,70 @@
                         </select>
                     </div>
                     <div>
-                        <button onclick="loadPendingQC()" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition shadow">
+                        <button onclick="loadPendingQC()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg shadow transition">
                             Load Pending QC Photos
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- QC Table Container -->
-            <div id="qc-content-container" class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hidden">
+            <!-- Search & Filters Bar -->
+            <div id="qc-controls" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 hidden flex flex-wrap gap-4 items-center justify-between">
+                <div class="w-full sm:w-72">
+                    <input type="text" id="qc-search" onkeyup="filterQCData()" placeholder="🔍 Search CSC ID or Mobile No..." class="w-full px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none">
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-sm font-semibold text-gray-600">Status Filter:</label>
+                    <select id="qc-status-filter" onchange="filterQCData()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                        <option value="ALL">All</option>
+                        <option value="PV Done">PV Done</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                        <option value="Pending">Pending</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- QC Table Container with Borders -->
+            <div id="qc-content-container" class="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden hidden">
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                    <table class="w-full text-left border-collapse border border-gray-300">
                         <thead>
-                            <tr class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b">
-                                <th class="px-4 py-3">#</th>
-                                <th class="px-4 py-3">CSC ID</th>
-                                <th class="px-4 py-3">VLE Name & Block</th>
-                                <th class="px-4 py-3">Mobile No</th>
-                                <th class="px-4 py-3">Branding Photo</th>
-                                <th class="px-4 py-3 text-center">Action (Approve / Reject)</th>
+                            <tr class="bg-gray-100 text-gray-700 uppercase text-xs tracking-wider border-b border-gray-300">
+                                <th class="border border-gray-300 px-4 py-3">#</th>
+                                <th class="border border-gray-300 px-4 py-3">CSC ID</th>
+                                <th class="border border-gray-300 px-4 py-3">VLE Name</th>
+                                <th class="border border-gray-300 px-4 py-3">Block</th>
+                                <th class="border border-gray-300 px-4 py-3">Mobile No</th>
+                                <th class="border border-gray-300 px-4 py-3">Photo</th>
+                                <th class="border border-gray-300 px-4 py-3">Map</th>
+                                <th class="border border-gray-300 px-4 py-3">Current Status</th>
+                                <th class="border border-gray-300 px-4 py-3 text-center">Action (Radio Options)</th>
                             </tr>
                         </thead>
-                        <tbody id="qc-table-body">
-                            <!-- Dynamic QC Rows -->
+                        <tbody id="qc-table-body" class="divide-y divide-gray-300">
+                            <!-- Dynamic Rows -->
                         </tbody>
                     </table>
+                </div>
+                <!-- Pagination Controls -->
+                <div class="p-4 bg-gray-50 border-t border-gray-300 flex justify-between items-center">
+                    <span id="pagination-info" class="text-sm text-gray-600 font-medium">Showing 0-0 of 0</span>
+                    <div class="flex gap-2">
+                        <button onclick="changePage(-1)" id="prev-btn" class="px-4 py-1.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold hover:bg-gray-100">Previous</button>
+                        <button onclick="changePage(1)" id="next-btn" class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700">Next</button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- ================= TAB 2: SMART ROUTE PLANNER ================= -->
+        <!-- TAB 2: SMART ROUTE PLANNER -->
         <div id="section-route" class="space-y-6 hidden">
-            <!-- Input & Configuration Box -->
-            <div class="bg-white p-6 rounded-xl shadow-sm space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-sm space-y-4 border border-gray-200">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">District Chuniye:</label>
-                        <select id="district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                        <select id="district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
                             <option value="">-- District Select Karein --</option>
                             <option value="Balod">Balod</option>
                             <option value="Baloda Bazar">Baloda Bazar</option>
@@ -180,78 +188,72 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Starting Point Select Karein:</label>
-                        <select id="start-type" onchange="toggleStartInput()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white">
+                        <select id="start-type" onchange="toggleStartInput()" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
                             <option value="gps">📍 Use My Current GPS Location</option>
                             <option value="manual">✍️ Enter Manual Lat, Long</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Manual Lat-Long Input -->
                 <div id="manual-box" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                    <input type="text" id="manual-lat" placeholder="Latitude (jaise: 20.735)" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
-                    <input type="text" id="manual-lon" placeholder="Longitude (jaise: 81.318)" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                    <input type="text" id="manual-lat" placeholder="Latitude (jaise: 20.735)" class="px-4 py-2 border border-gray-300 rounded-lg">
+                    <input type="text" id="manual-lon" placeholder="Longitude (jaise: 81.318)" class="px-4 py-2 border border-gray-300 rounded-lg">
                 </div>
 
                 <div class="flex justify-end pt-2">
-                    <button onclick="loadNearestCenters()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg transition shadow">
+                    <button onclick="loadNearestCenters()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg shadow transition">
                         Find Nearest 15 Unverified Centers
                     </button>
                 </div>
             </div>
 
-            <!-- Loading Spinner -->
             <div id="loader" class="text-center py-12 hidden">
                 <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
                 <p class="text-gray-500 mt-2">Smart sequential route calculate ho raha hai...</p>
             </div>
 
-            <!-- Welcome Message -->
-            <div id="welcome-msg" class="bg-white p-8 rounded-xl text-center text-gray-500 shadow-sm border border-gray-100">
+            <div id="welcome-msg" class="bg-white p-8 rounded-xl text-center text-gray-500 shadow-sm border border-gray-200">
                 <p class="text-lg font-medium text-gray-700">👋 Namaste!</p>
                 <p class="text-sm text-gray-500 mt-1">Dropdown se apna <b>District</b> chun kar aur starting point select karke button dabayein.</p>
             </div>
 
-            <!-- Content & Table Container -->
             <div id="content-container" class="hidden space-y-6">
-                <div class="bg-white p-4 rounded-xl shadow-sm flex flex-col lg:flex-row justify-between items-center gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex flex-col lg:flex-row justify-between items-center gap-4">
                     <div>
                         <h2 id="list-title" class="text-lg font-bold text-gray-800">Smart Sequential Route List</h2>
                         <p class="text-xs text-gray-500">Nearest Neighbor chaining algorithm dwara optimized route.</p>
                     </div>
-                    <!-- Dual Route Buttons -->
                     <div class="flex flex-wrap gap-2">
-                        <button onclick="openGoogleMapsRoutePart(1)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
+                        <button onclick="openGoogleMapsRoutePart(1)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm">
                             🗺️ Route Part 1 (Centers 1-8)
                         </button>
-                        <button id="btn-part2" onclick="openGoogleMapsRoutePart(2)" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
+                        <button id="btn-part2" onclick="openGoogleMapsRoutePart(2)" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm">
                             🗺 Route Part 2 (Centers 9-15)
                         </button>
                     </div>
                 </div>
 
-                <!-- In-App Mini Map Preview Box -->
                 <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
                     <h3 class="text-sm font-bold text-gray-700 mb-2">📍 Live Route Preview Map</h3>
                     <div id="mini-map" class="w-full h-72 rounded-lg z-10"></div>
                 </div>
 
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden">
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full text-left border-collapse border border-gray-300">
                             <thead>
-                                <tr class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider border-b">
-                                    <th class="px-4 py-3">#</th>
-                                    <th class="px-4 py-3">Block</th>
-                                    <th class="px-4 py-3">CSC ID</th>
-                                    <th class="px-4 py-3">VLE Name</th>
-                                    <th class="px-4 py-3">Mobile & Direct Connect</th>
-                                    <th class="px-4 py-3">Leg Distance</th>
-                                    <th class="px-4 py-3">Photo</th>
-                                    <th class="px-4 py-3">Location</th>
+                                <tr class="bg-gray-100 text-gray-700 uppercase text-xs tracking-wider border-b border-gray-300">
+                                    <th class="border border-gray-300 px-4 py-3">#</th>
+                                    <th class="border border-gray-300 px-4 py-3">Block</th>
+                                    <th class="border border-gray-300 px-4 py-3">CSC ID</th>
+                                    <th class="border border-gray-300 px-4 py-3">VLE Name</th>
+                                    <th class="border border-gray-300 px-4 py-3">Mobile & Direct Connect</th>
+                                    <th class="border border-gray-300 px-4 py-3">Leg Distance</th>
+                                    <th class="border border-gray-300 px-4 py-3">Photo</th>
+                                    <th class="border border-gray-300 px-4 py-3">Location</th>
                                 </tr>
                             </thead>
-                            <tbody id="table-body">
+                            <tbody id="table-body" class="divide-y divide-gray-300">
                                 <!-- Dynamic Rows -->
                             </tbody>
                         </table>
@@ -259,21 +261,23 @@
                 </div>
             </div>
         </div>
-
     </main>
 
-    <!-- Leaflet JS for Mini Map Preview -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-    <!-- JavaScript Logic -->
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzCIVhYltXttOFEVta3MGprydflFx1yosaEYgYB7ujuaBsd5s7zNnnPAhFeSc2F4gYz/exec";
+        
+        let allQcCenters = [];
+        let filteredQcCenters = [];
+        let currentPage = 1;
+        const pageSize = 10;
+        
         let fetchedCenters = [];
         let currentStartLat = null;
         let currentStartLon = null;
         let mapInstance = null;
 
-        // Tab Switcher Logic
         function switchTab(tab) {
             let qcSec = document.getElementById('section-qc');
             let routeSec = document.getElementById('section-route');
@@ -293,7 +297,6 @@
             }
         }
 
-        // Photo QC Functions
         async function loadPendingQC() {
             let district = document.getElementById('qc-district-select').value;
             if (!district) {
@@ -306,41 +309,15 @@
                 let result = await response.json();
 
                 if (result.success) {
-                    let centers = result.pendingCenters;
-                    let tbody = document.getElementById('qc-table-body');
-                    let container = document.getElementById('qc-content-container');
+                    allQcCenters = result.pendingCenters;
+                    filteredQcCenters = [...allQcCenters];
+                    currentPage = 1;
 
-                    if (centers.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">Is district mein verification ke liye koi pending photo nahi hai!</td></tr>`;
-                        container.classList.remove('hidden');
-                        return;
-                    }
-
-                    let rowsHtml = centers.map((c, idx) => `
-                        <tr class="hover:bg-gray-50 border-b" id="row-${c.cscId}">
-                            <td class="px-4 py-3 text-sm font-bold text-gray-700">${idx + 1}</td>
-                            <td class="px-4 py-3 text-sm font-semibold text-blue-600">${c.cscId}</td>
-                            <td class="px-4 py-3 text-sm">
-                                <div class="font-bold text-gray-800">${c.vleName}</div>
-                                <div class="text-xs text-gray-500">Block: ${c.block}</div>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-gray-600">${c.mobileNo || 'N/A'}</td>
-                            <td class="px-4 py-3 text-sm">
-                                <a href="${c.photoLink}" target="_blank" class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg font-semibold hover:bg-blue-200 inline-block">🔍 View Photo</a>
-                            </td>
-                            <td class="px-4 py-3 text-sm text-center">
-                                <div class="flex justify-center gap-2">
-                                    <button onclick="updateStatus('${c.cscId}', 'Approved')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded font-semibold text-xs shadow">Approve</button>
-                                    <button onclick="rejectPrompt('${c.cscId}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded font-semibold text-xs shadow">Reject</button>
-                                </div>
-                            </td>
-                        </tr>
-                    `).join('');
-
-                    tbody.innerHTML = rowsHtml;
-                    container.classList.remove('hidden');
+                    document.getElementById('qc-controls').classList.remove('hidden');
+                    document.getElementById('qc-content-container').classList.remove('hidden');
+                    renderQCTable();
                 } else {
-                    alert('Pending QC data load karne mein samasya aayi.');
+                    alert('Data load karne mein samasya aayi.');
                 }
             } catch (err) {
                 console.error(err);
@@ -348,17 +325,102 @@
             }
         }
 
-        async function updateStatus(cscId, status, reason = "") {
-            if (!confirm(`Kya aap pakka is VLE (${cscId}) ko ${status} karna chahte hain?`)) return;
+        function filterQcData() {
+            // alias for filterQCData
+            filterQCData();
+        }
 
+        function filterQCData() {
+            let query = document.getElementById('qc-search').value.toLowerCase();
+            let statusFilter = document.getElementById('qc-status-filter').value;
+
+            filteredQcCenters = allQcCenters.filter(c => {
+                let matchQuery = c.cscId.toLowerCase().includes(query) || c.mobileNo.toLowerCase().includes(query) || c.vleName.toLowerCase().includes(query);
+                let matchStatus = (statusFilter === 'ALL') || (c.qcStatus.toLowerCase() === statusFilter.toLowerCase());
+                return matchQuery && matchStatus;
+            });
+
+            currentPage = 1;
+            renderQCTable();
+        }
+
+        function renderQCTable() {
+            let tbody = document.getElementById('qc-table-body');
+            let container = document.getElementById('qc-content-container');
+
+            if (filteredQcCenters.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500 font-semibold">Koi records nahi mile!</td></tr>`;
+                document.getElementById('pagination-info').innerText = `Showing 0-0 of 0`;
+                return;
+            }
+
+            let startIndex = (currentPage - 1) * pageSize;
+            let endIndex = Math.min(startIndex + pageSize, filteredQcCenters.length);
+            let paginatedItems = filteredQcCenters.slice(startIndex, endIndex);
+
+            let rowsHtml = paginatedItems.map((c, idx) => {
+                let globalIdx = startIndex + idx + 1;
+                return `
+                    <tr class="hover:bg-gray-50 border-b border-gray-300" id="row-${c.cscId}">
+                        <td class="border border-gray-300 px-4 py-3 text-sm font-bold text-gray-700">${globalIdx}</td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm font-semibold text-blue-600">${c.cscId}</td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm font-bold text-gray-800">${c.vleName}</td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm font-medium text-gray-600">${c.block}</td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm text-gray-600">
+                            <div class="flex items-center gap-2">
+                                <span>${c.mobileNo || 'N/A'}</span>
+                                ${c.mobileNo ? `
+                                    <a href="tel:${c.mobileNo}" class="bg-green-100 text-green-700 p-1.5 rounded-full hover:bg-green-200 transition" title="Direct Call">📞</a>
+                                    <a href="https://wa.me/91${c.mobileNo}?text=Namaste%20VLE%20ji,%20aapke%20center%20verification%20ke%20sambandh%20mein." target="_blank" class="bg-emerald-100 text-emerald-700 p-1.5 rounded-full hover:bg-emerald-200 transition" title="WhatsApp Message">💬</a>
+                                ` : ''}
+                            </div>
+                        </td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm">
+                            <a href="${c.photoLink}" target="_blank" class="bg-blue-100 text-blue-700 px-3 py-1 rounded font-semibold hover:bg-blue-200 inline-block text-xs">🔍 View</a>
+                        </td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm">
+                            ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-100">🗺️ Map</a>` : 'N/A'}
+                        </td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${c.qcStatus === 'Approved' ? 'bg-green-100 text-green-700' : c.qcStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-800'}">${c.qcStatus}</span>
+                        </td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm text-center">
+                            <div class="flex justify-center items-center gap-4">
+                                <label class="flex items-center gap-1 cursor-pointer text-xs font-bold text-green-700">
+                                    <input type="radio" name="action-${c.cscId}" onclick="updateStatus('${c.cscId}', 'Approved')" ${c.qcStatus === 'Approved' ? 'checked' : ''}> Approve
+                                </label>
+                                <label class="flex items-center gap-1 cursor-pointer text-xs font-bold text-red-700">
+                                    <input type="radio" name="action-${c.cscId}" onclick="updateStatus('${c.cscId}', 'Rejected')" ${c.qcStatus === 'Rejected' ? 'checked' : ''}> Reject
+                                </label>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = rowsHtml;
+            document.getElementById('pagination-info').innerText = `Showing ${startIndex + 1}-${endIndex} of ${filteredQcCenters.length}`;
+            
+            document.getElementById('prev-btn').disabled = currentPage === 1;
+            document.getElementById('next-btn').disabled = endIndex >= filteredQcCenters.length;
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            renderQCTable();
+        }
+
+        async function updateStatus(cscId, status) {
             try {
-                let url = `${API_URL}?action=updateQCStatus&cscId=${cscId}&status=${encodeURIComponent(status)}&reason=${encodeURIComponent(reason)}`;
+                let url = `${API_URL}?action=updateQCStatus&cscId=${cscId}&status=${encodeURIComponent(status)}`;
                 let res = await fetch(url);
                 let json = await res.json();
 
                 if (json.success) {
-                    alert(`Status successfully updated to: ${status}`);
-                    document.getElementById(`row-${cscId}`).remove(); // Row hata do list se
+                    // Update local state
+                    let item = allQcCenters.find(c => c.cscId === cscId);
+                    if (item) item.qcStatus = status;
+                    renderQCTable();
                 } else {
                     alert('Status update nahi ho paya.');
                 }
@@ -368,36 +430,15 @@
             }
         }
 
-        function rejectPrompt(cscId) {
-            let reason = prompt("Rejection ka reason daalein (jaise: Branding clear nahi hai):");
-            if (reason !== null) {
-                updateStatus(cscId, "Rejected", reason);
-            }
-        }
-
-        // Existing Route Planner Functions (Unchanged)
         function toggleSunlightMode() {
             document.body.classList.toggle('sunlight-mode');
             let btn = document.getElementById('sunlight-btn');
-            if (document.body.classList.contains('sunlight-mode')) {
-                btn.innerText = "🌙 Normal Mode";
-                btn.classList.remove('bg-amber-500', 'text-black');
-                btn.classList.add('bg-black', 'text-white');
-            } else {
-                btn.innerText = "☀️ Sunlight Mode";
-                btn.classList.remove('bg-black', 'text-white');
-                btn.classList.add('bg-amber-500', 'text-black');
-            }
+            btn.innerText = document.body.classList.contains('sunlight-mode') ? "🌙 Normal Mode" : "☀️ Sunlight Mode";
         }
 
         function toggleStartInput() {
             let type = document.getElementById('start-type').value;
-            let manualBox = document.getElementById('manual-box');
-            if (type === 'manual') {
-                manualBox.classList.remove('hidden');
-            } else {
-                manualBox.classList.add('hidden');
-            }
+            document.getElementById('manual-box').classList.toggle('hidden', type !== 'manual');
         }
 
         function loadNearestCenters() {
@@ -408,120 +449,84 @@
             }
 
             let startType = document.getElementById('start-type').value;
-
             if (startType === 'gps') {
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            currentStartLat = position.coords.latitude;
-                            currentStartLon = position.coords.longitude;
-                            fetchDataFromAPI(district, currentStartLat, currentStartLon);
-                        },
-                        (error) => {
-                            alert('GPS location fetch nahi ho payi. Kripya Manual option select karein.');
-                        }
+                        (position) => { fetchDataFromAPI(district, position.coords.latitude, position.coords.longitude); },
+                        () => { alert('GPS location fetch nahi ho payi. Manual option chuniye.'); }
                     );
                 } else {
-                    alert('Aapka browser Geolocation support nahi karta.');
+                    alert('Geolocation supported nahi hai.');
                 }
             } else {
                 let lat = parseFloat(document.getElementById('manual-lat').value);
                 let lon = parseFloat(document.getElementById('manual-lon').value);
                 if (isNaN(lat) || isNaN(lon)) {
-                    alert('Kripya valid manual Latitude aur Longitude daalein!');
+                    alert('Valid manual Latitude aur Longitude daalein!');
                     return;
                 }
-                currentStartLat = lat;
-                currentStartLon = lon;
-                fetchDataFromAPI(district, currentStartLat, currentStartLon);
+                fetchDataFromAPI(district, lat, lon);
             }
         }
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            var R = 6371; 
-            var dLat = (lat2 - lat1) * Math.PI / 180;
-            var dLon = (lon2 - lon1) * Math.PI / 180;
-            var a = 
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-                Math.sin(dLon / 2) * Math.sin(dLon / 2); 
-            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
-            return R * c; 
+            let R = 6371; 
+            let dLat = (lat2 - lat1) * Math.PI / 180;
+            let dLon = (lon2 - lon1) * Math.PI / 180;
+            let a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2); 
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
         }
 
         function getChainedRoute(startLat, startLon, centers, limit = 15) {
             let unvisited = [...centers];
             let chained = [];
-            let currLat = startLat;
-            let currLon = startLon;
+            let currLat = startLat, currLon = startLon;
 
             while (unvisited.length > 0 && chained.length < limit) {
-                let nearestIdx = -1;
-                let minDst = Infinity;
-
+                let nearestIdx = -1, minDst = Infinity;
                 for (let i = 0; i < unvisited.length; i++) {
                     let dist = calculateDistance(currLat, currLon, unvisited[i].lat, unvisited[i].lon);
-                    if (dist < minDst) {
-                        minDst = dist;
-                        nearestIdx = i;
-                    }
+                    if (dist < minDst) { minDst = dist; nearestIdx = i; }
                 }
-
                 if (nearestIdx !== -1) {
                     let nextCenter = unvisited.splice(nearestIdx, 1)[0];
-                    nextCenter.distance = minDst; 
+                    nextCenter.distance = minDst;
                     chained.push(nextCenter);
-                    currLat = nextCenter.lat;
-                    currLon = nextCenter.lon;
-                } else {
-                    break;
-                }
+                    currLat = nextCenter.lat; currLon = nextCenter.lon;
+                } else { break; }
             }
             return chained;
         }
 
         async function fetchDataFromAPI(district, lat, lon) {
-            const loader = document.getElementById('loader');
-            const welcomeMsg = document.getElementById('welcome-msg');
-            const contentContainer = document.getElementById('content-container');
-            const badge = document.getElementById('total-badge');
-
-            welcomeMsg.classList.add('hidden');
-            contentContainer.classList.add('hidden');
-            loader.classList.remove('hidden');
+            currentStartLat = lat; currentStartLon = lon;
+            document.getElementById('welcome-msg').classList.add('hidden');
+            document.getElementById('content-container').classList.add('hidden');
+            document.getElementById('loader').classList.remove('hidden');
 
             try {
                 let url = `${API_URL}?action=dmRoute&district=${encodeURIComponent(district)}&lat=${lat}&lon=${lon}&limit=100`; 
                 let response = await fetch(url);
                 let result = await response.json();
-
-                loader.classList.add('hidden');
+                document.getElementById('loader').classList.add('hidden');
 
                 if (result.success) {
-                    let rawCenters = result.centers;
-                    badge.innerText = `Unverified Remaining: ${result.totalDistrictUnverified}`;
-                    
-                    if (rawCenters.length === 0) {
-                        alert('Is district me verification ke liye koi unverified center nahi bacha hai!');
+                    document.getElementById('total-badge').innerText = `Unverified Remaining: ${result.totalDistrictUnverified}`;
+                    if (result.centers.length === 0) {
+                        alert('Is district me koi unverified center nahi bacha hai!');
                         return;
                     }
 
-                    fetchedCenters = getChainedRoute(lat, lon, rawCenters, 15);
-
-                    let btnPart2 = document.getElementById('btn-part2');
-                    if (fetchedCenters.length <= 8) {
-                        btnPart2.classList.add('hidden');
-                    } else {
-                        btnPart2.classList.remove('hidden');
-                    }
+                    fetchedCenters = getChainedRoute(lat, lon, result.centers, 15);
+                    document.getElementById('btn-part2').classList.toggle('hidden', fetchedCenters.length <= 8);
 
                     let tableRows = fetchedCenters.map((c, index) => `
-                        <tr class="hover:bg-gray-50 border-b">
-                            <td class="px-4 py-3 text-sm text-gray-700 font-bold">${index + 1}</td>
-                            <td class="px-4 py-3 text-sm font-medium text-gray-900">${c.block}</td>
-                            <td class="px-4 py-3 text-sm text-gray-600">${c.cscId}</td>
-                            <td class="px-4 py-3 text-sm font-semibold text-gray-800">${c.vleName}</td>
-                            <td class="px-4 py-3 text-sm text-gray-600">
+                        <tr class="hover:bg-gray-50 border-b border-gray-300">
+                            <td class="border border-gray-300 px-4 py-3 text-sm font-bold text-gray-700">${index + 1}</td>
+                            <td class="border border-gray-300 px-4 py-3 text-sm font-medium text-gray-900">${c.block}</td>
+                            <td class="border border-gray-300 px-4 py-3 text-sm text-gray-600">${c.cscId}</td>
+                            <td class="border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-800">${c.vleName}</td>
+                            <td class="border border-gray-300 px-4 py-3 text-sm text-gray-600">
                                 <div class="flex items-center gap-2">
                                     <span>${c.mobileNo || 'N/A'}</span>
                                     ${c.mobileNo ? `
@@ -530,11 +535,11 @@
                                     ` : ''}
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm font-medium text-emerald-600">${c.distance ? c.distance.toFixed(2) + ' km' : 'N/A'}</td>
-                            <td class="px-4 py-3 text-sm">
+                            <td class="border border-gray-300 px-4 py-3 text-sm font-medium text-emerald-600">${c.distance ? c.distance.toFixed(2) + ' km' : 'N/A'}</td>
+                            <td class="border border-gray-300 px-4 py-3 text-sm">
                                 ${c.photoLink ? `<a href="${c.photoLink}" target="_blank" class="text-blue-600 hover:underline font-medium">View Photo</a>` : '<span class="text-gray-400">No Photo</span>'}
                             </td>
-                            <td class="px-4 py-3 text-sm">
+                            <td class="border border-gray-300 px-4 py-3 text-sm">
                                 ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-200">Map</a>` : 'N/A'}
                             </td>
                         </tr>
@@ -542,43 +547,29 @@
 
                     document.getElementById('table-body').innerHTML = tableRows;
                     document.getElementById('list-title').innerText = `${district.toUpperCase()} - Smart Sequential Route (15 Centers)`;
-                    contentContainer.classList.remove('hidden');
+                    document.getElementById('content-container').classList.remove('hidden');
 
                     renderMiniMap(lat, lon, fetchedCenters);
-
-                } else {
-                    alert('Data load karne me samasya aayi.');
                 }
             } catch (error) {
-                loader.classList.add('hidden');
+                document.getElementById('loader').classList.add('hidden');
                 console.error(error);
-                alert('Connection error! Kripya URL check karein.');
+                alert('Connection error!');
             }
         }
 
         function renderMiniMap(startLat, startLon, centers) {
             setTimeout(() => {
-                if (mapInstance) {
-                    mapInstance.remove();
-                }
-
+                if (mapInstance) mapInstance.remove();
                 mapInstance = L.map('mini-map').setView([startLat, startLon], 11);
-
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(mapInstance);
-
-                L.marker([startLat, startLon], {
-                    title: "Start Point"
-                }).addTo(mapInstance).bindPopup("<b>Starting Point</b>").openPopup();
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(mapInstance);
+                L.marker([startLat, startLon]).addTo(mapInstance).bindPopup("<b>Starting Point</b>").openPopup();
 
                 let latlngs = [[startLat, startLon]];
-
                 centers.forEach((c, idx) => {
                     if (c.lat && c.lon) {
                         latlngs.push([c.lat, c.lon]);
-                        L.marker([c.lat, c.lon]).addTo(mapInstance)
-                            .bindPopup(`<b>#${idx+1}: ${c.vleName}</b><br>${c.block} (${c.cscId})`);
+                        L.marker([c.lat, c.lon]).addTo(mapInstance).bindPopup(`<b>#${idx+1}: ${c.vleName}</b><br>${c.block} (${c.cscId})`);
                     }
                 });
 
@@ -589,39 +580,20 @@
 
         function openGoogleMapsRoutePart(part) {
             if (fetchedCenters.length === 0) return;
-
             let points = [];
-            
             if (part === 1) {
                 points.push(`${currentStartLat},${currentStartLon}`);
-                let sliceEnd = Math.min(fetchedCenters.length, 8);
-                for (let i = 0; i < sliceEnd; i++) {
-                    if (fetchedCenters[i].lat && fetchedCenters[i].lon) {
-                        points.push(`${fetchedCenters[i].lat},${fetchedCenters[i].lon}`);
-                    }
+                for (let i = 0; i < Math.min(fetchedCenters.length, 8); i++) {
+                    if (fetchedCenters[i].lat) points.push(`${fetchedCenters[i].lat},${fetchedCenters[i].lon}`);
                 }
             } else {
-                let startPointIdx = 7; 
-                if (fetchedCenters[startPointIdx] && fetchedCenters[startPointIdx].lat && fetchedCenters[startPointIdx].lon) {
-                    points.push(`${fetchedCenters[startPointIdx].lat},${fetchedCenters[startPointIdx].lon}`);
-                } else {
-                    points.push(`${currentStartLat},${currentStartLon}`);
-                }
-
+                let startIdx = 7;
+                points.push(fetchedCenters[startIdx] ? `${fetchedCenters[startIdx].lat},${fetchedCenters[startIdx].lon}` : `${currentStartLat},${currentStartLon}`);
                 for (let i = 8; i < fetchedCenters.length; i++) {
-                    if (fetchedCenters[i].lat && fetchedCenters[i].lon) {
-                        points.push(`${fetchedCenters[i].lat},${fetchedCenters[i].lon}`);
-                    }
+                    if (fetchedCenters[i].lat) points.push(`${fetchedCenters[i].lat},${fetchedCenters[i].lon}`);
                 }
             }
-
-            if (points.length <= 1) {
-                alert('Route ke liye sufficient coordinates available nahi hain.');
-                return;
-            }
-
-            let routeUrl = `https://www.google.com/maps/dir/${points.join('/')}`;
-            window.open(routeUrl, '_blank');
+            window.open(`https://www.google.com/maps/dir/${points.join('/')}`, '_blank');
         }
     </script>
 </body>
