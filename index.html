@@ -707,7 +707,7 @@
             setTimeout(() => {
                 if (mapInstance) mapInstance.remove();
                 mapInstance = L.map('mini-map').setView([startLat, startLon], 11);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/*.png', { attribution: '&copy; OpenStreetMap' }).addTo(mapInstance);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(mapInstance);
                 L.marker([startLat, startLon]).addTo(mapInstance).bindPopup("<b>Starting Point</b>").openPopup();
 
                 let latlngs = [[startLat, startLon]];
