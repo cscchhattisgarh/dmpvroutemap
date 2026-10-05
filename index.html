@@ -97,9 +97,12 @@
                             <option value="Surguja">Surguja</option>
                         </select>
                     </div>
-                    <div>
-                        <button onclick="loadPendingQC()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg shadow transition flex items-center justify-center gap-2">
-                            🔄 View & Verify QC Records
+                    <div class="flex gap-2">
+                        <button onclick="loadPendingQC()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-lg shadow transition flex items-center justify-center gap-2 text-sm">
+                            🔄 View & Verify
+                        </button>
+                        <button onclick="triggerPVSync()" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg shadow transition flex items-center justify-center gap-2 text-sm" title="Sync PV Data from PV Done Sheet">
+                            🔄 Sync PV Data
                         </button>
                     </div>
                 </div>
@@ -416,12 +419,10 @@
             let imgTag = document.getElementById('modal-img-tag');
             
             if (!imgTag.classList.contains('zoomed')) {
-                // Get click coordinates relative to the image element
                 let rect = imgTag.getBoundingClientRect();
                 let clickX = event.clientX - rect.left;
                 let clickY = event.clientY - rect.top;
                 
-                // Convert to percentage for transform-origin
                 let xPercent = (clickX / rect.width) * 100;
                 let yPercent = (clickY / rect.height) * 100;
                 
@@ -461,92 +462,112 @@
             await submitQcAction(cscId, 'Rejected', reason);
         }
 
-  async function submitQcAction(cscId, status, remark) {
-    document.getElementById('qc-loader').classList.remove('hidden');
-    try {
-        let response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'text/plain;charset=utf-8' // Yeh line CORS preflight error ko rokti hai
-            },
-            body: JSON.stringify({
-                action: 'updateQCStatus',
-                cscId: cscId,
-                status: status,
-                remark: remark
-            })
-        });
-        let result = await response.json();
-        document.getElementById('qc-loader').classList.add('hidden');
-        if (result.success) {
-            let item = allQcCenters.find(c => c.cscId === cscId);
-            if (item) {
-                item.qcStatus = status;
-            }
-            filterQCData();
-            alert(`Success: Status successfully updated to ${status}!`);
-        } else {
-            alert('Status update karne mein asafalta aayi: ' + (result.message || 'Unknown error'));
-        }
-    } catch (err) {
-        document.getElementById('qc-loader').classList.add('hidden');
-        console.error(err);
-        alert('Connection error! Kripya dobara koshish karein.');
-    }
-}
-
-  async function loadPendingQC() {
-    let district = document.getElementById('qc-district-select').value;
-    document.getElementById('qc-loader').classList.remove('hidden');
-
-    try {
-        let response = await fetch(`${API_URL}?action=getPendingQC&district=${encodeURIComponent(district)}`);
-        let result = await response.json();
-        document.getElementById('qc-loader').classList.add('hidden');
-
-        if (result.success) {
-            allQcCenters = result.pendingCenters;
-
-            // 💡 Sorting Logic: 1. CSC ID wise, 2. Oldest first (Time ascending)
-            allQcCenters.sort((a, b) => {
-                let idA = String(a.cscId || '').trim();
-                let idB = String(b.cscId || '').trim();
-                
-                // Pehle CSC ID se sort karein
-                if (idA !== idB) {
-                    return idA.localeCompare(idB);
-                }
-                
-                // Agar CSC ID same hai, toh time ke anusar Oldest first (Ascending) sort karein
-                let timeA = a.uploadTimestamp ? new Date(a.uploadTimestamp).getTime() : 0;
-                let timeB = b.uploadTimestamp ? new Date(b.uploadTimestamp).getTime() : 0;
-                return timeA - timeB;
-            });
-
-            filteredQcCenters = [...allQcCenters];
-            currentPage = 1;
-
-            let prioritySelect = document.getElementById('qc-priority-filter');
-            let priorityOpts = `<option value="ALL">All Priorities</option>`;
-            if (result.priorities) {
-                result.priorities.forEach(p => {
-                    priorityOpts += `<option value="${p}">${p}</option>`;
+        async function submitQcAction(cscId, status, remark) {
+            document.getElementById('qc-loader').classList.remove('hidden');
+            try {
+                let response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8'
+                    },
+                    body: JSON.stringify({
+                        action: 'updateQCStatus',
+                        cscId: cscId,
+                        status: status,
+                        remark: remark
+                    })
                 });
+                let result = await response.json();
+                document.getElementById('qc-loader').classList.add('hidden');
+                if (result.success) {
+                    let item = allQcCenters.find(c => c.cscId === cscId);
+                    if (item) {
+                        item.qcStatus = status;
+                    }
+                    filterQCData();
+                    alert(`Success: Status successfully updated to ${status}!`);
+                } else {
+                    alert('Status update karne mein asafalta aayi: ' + (result.message || 'Unknown error'));
+                }
+            } catch (err) {
+                document.getElementById('qc-loader').classList.add('hidden');
+                console.error(err);
+                alert('Connection error! Kripya dobara koshish karein.');
             }
-            prioritySelect.innerHTML = priorityOpts;
-
-            document.getElementById('qc-controls').classList.remove('hidden');
-            document.getElementById('qc-content-container').classList.remove('hidden');
-            renderQCTable();
-        } else {
-            alert('Data load karne mein samasya aayi.');
         }
-    } catch (err) {
-        document.getElementById('qc-loader').classList.add('hidden');
-        console.error(err);
-        alert('Connection error! Kripya dobara koshish karein.');
-    }
-}
+
+        async function loadPendingQC() {
+            let district = document.getElementById('qc-district-select').value;
+            document.getElementById('qc-loader').classList.remove('hidden');
+
+            try {
+                let response = await fetch(`${API_URL}?action=getPendingQC&district=${encodeURIComponent(district)}`);
+                let result = await response.json();
+                document.getElementById('qc-loader').classList.add('hidden');
+
+                if (result.success) {
+                    allQcCenters = result.pendingCenters;
+
+                    allQcCenters.sort((a, b) => {
+                        let idA = String(a.cscId || '').trim();
+                        let idB = String(b.cscId || '').trim();
+                        
+                        if (idA !== idB) {
+                            return idA.localeCompare(idB);
+                        }
+                        
+                        let timeA = a.uploadTimestamp ? new Date(a.uploadTimestamp).getTime() : 0;
+                        let timeB = b.uploadTimestamp ? new Date(b.uploadTimestamp).getTime() : 0;
+                        return timeA - timeB;
+                    });
+
+                    filteredQcCenters = [...allQcCenters];
+                    currentPage = 1;
+
+                    let prioritySelect = document.getElementById('qc-priority-filter');
+                    let priorityOpts = `<option value="ALL">All Priorities</option>`;
+                    if (result.priorities) {
+                        result.priorities.forEach(p => {
+                            priorityOpts += `<option value="${p}">${p}</option>`;
+                        });
+                    }
+                    prioritySelect.innerHTML = priorityOpts;
+
+                    document.getElementById('qc-controls').classList.remove('hidden');
+                    document.getElementById('qc-content-container').classList.remove('hidden');
+                    renderQCTable();
+                } else {
+                    alert('Data load karne mein samasya aayi.');
+                }
+            } catch (err) {
+                document.getElementById('qc-loader').classList.add('hidden');
+                console.error(err);
+                alert('Connection error! Kripya dobara koshish karein.');
+            }
+        }
+
+        // Trigger PV Data Sync Function
+        function triggerPVSync() {
+            document.getElementById('qc-loader').classList.remove('hidden');
+            let url = `${API_URL}?action=syncPV`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('qc-loader').classList.add('hidden');
+                    if (data.success) {
+                        alert(data.message);
+                        loadPendingQC();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('qc-loader').classList.add('hidden');
+                    console.error(err);
+                    alert('Network error! Kripya dobara koshish karein.');
+                });
+        }
 
         function filterQCData() {
             let query = document.getElementById('qc-search').value.toLowerCase();
@@ -564,88 +585,86 @@
             renderQCTable();
         }
 
-       function renderQCTable() {
-    let tbody = document.getElementById('qc-table-body');
-    let totalPages = Math.ceil(filteredQcCenters.length / pageSize) || 1;
+        function renderQCTable() {
+            let tbody = document.getElementById('qc-table-body');
+            let totalPages = Math.ceil(filteredQcCenters.length / pageSize) || 1;
 
-    if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage > totalPages) currentPage = totalPages;
 
-    if (filteredQcCenters.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-gray-500 font-semibold">Koi records nahi mile!</td></tr>`;
-        document.getElementById('pagination-info').innerText = `Showing 0-0 of 0`;
-        updatePageJumpDropdown(1, 1);
-        return;
-    }
+            if (filteredQcCenters.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="11" class="px-4 py-6 text-center text-gray-500 font-semibold">Koi records nahi mile!</td></tr>`;
+                document.getElementById('pagination-info').innerText = `Showing 0-0 of 0`;
+                updatePageJumpDropdown(1, 1);
+                return;
+            }
 
-    let startIndex = (currentPage - 1) * pageSize;
-    let endIndex = Math.min(startIndex + pageSize, filteredQcCenters.length);
-    let paginatedItems = filteredQcCenters.slice(startIndex, endIndex);
+            let startIndex = (currentPage - 1) * pageSize;
+            let endIndex = Math.min(startIndex + pageSize, filteredQcCenters.length);
+            let paginatedItems = filteredQcCenters.slice(startIndex, endIndex);
 
-    let lastCscId = null;
-    let colorToggle = false;
+            let lastCscId = null;
+            let colorToggle = false;
 
-    let rowsHtml = paginatedItems.map((c, idx) => {
-        let globalIdx = startIndex + idx + 1;
-        let isFinalized = (c.qcStatus === 'Approved' || c.qcStatus === 'PV Done');
+            let rowsHtml = paginatedItems.map((c, idx) => {
+                let globalIdx = startIndex + idx + 1;
+                let isFinalized = (c.qcStatus === 'Approved' || c.qcStatus === 'PV Done');
 
-        // 💡 Logic: Jaise hi CSC ID change hogi, color toggle ho jayega
-        if (c.cscId !== lastCscId) {
-            colorToggle = !colorToggle;
-            lastCscId = c.cscId;
+                if (c.cscId !== lastCscId) {
+                    colorToggle = !colorToggle;
+                    lastCscId = c.cscId;
+                }
+
+                let groupBgClass = colorToggle ? 'bg-blue-50/70' : 'bg-white';
+
+                return `
+                    <tr class="${groupBgClass} hover:bg-amber-100 border-b border-gray-300 transition" id="row-${c.cscId}">
+                        <td class="border border-gray-300 px-3 py-3 text-sm font-bold text-gray-700">${globalIdx}</td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-gray-800">${c.district}</td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm font-medium text-gray-700">${c.block}</td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-blue-600">${c.cscId}</td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm">
+                            <div class="font-bold text-gray-800">${c.vleName}</div>
+                            <div class="flex items-center gap-2 text-xs text-gray-600 mt-1">
+                                <span>${c.mobileNo || 'N/A'}</span>
+                                ${c.mobileNo ? `
+                                    <a href="tel:${c.mobileNo}" class="bg-green-100 text-green-700 p-1 rounded-full hover:bg-green-200 transition" title="Direct Call">📞</a>
+                                    <a href="https://wa.me/91${c.mobileNo}?text=Namaste%20VLE%20ji,%20aapke%20center%20verification%20ke%20sambandh%20mein." target="_blank" class="bg-emerald-100 text-emerald-700 p-1 rounded-full hover:bg-emerald-200 transition" title="WhatsApp Message">💬</a>
+                                ` : ''}
+                            </div>
+                        </td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm">
+                            ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-100">🗺️ Map</a>` : 'N/A'}
+                        </td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm text-center">
+                            ${renderThumbnailHtml(c.photoLink)}
+                        </td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm text-gray-600 text-xs">${c.uploadTimestamp || 'N/A'}</td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-gray-700">${c.priority || 'N/A'}</td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${c.qcStatus === 'Approved' ? 'bg-green-100 text-green-700' : c.qcStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-800'}">${c.qcStatus}</span>
+                        </td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm text-center">
+                            ${isFinalized ? `
+                                <span class="text-xs text-gray-400 font-semibold italic">Locked</span>
+                            ` : `
+                                <div class="flex justify-center items-center gap-3">
+                                    <button onclick="handleApprove('${c.cscId}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">Approve</button>
+                                    <button onclick="openRejectModal('${c.cscId}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">Reject</button>
+                                </div>
+                            `}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = rowsHtml;
+            document.getElementById('pagination-info').innerText = `Showing ${startIndex + 1}-${endIndex} of ${filteredQcCenters.length}`;
+            
+            updatePageJumpDropdown(currentPage, totalPages);
+
+            document.getElementById('prev-btn').disabled = currentPage === 1;
+            document.getElementById('next-btn').disabled = currentPage >= totalPages;
         }
-
-        // Har group ke liye alag background color (ek halka blue shade aur ek white)
-        let groupBgClass = colorToggle ? 'bg-blue-50/70' : 'bg-white';
-
-        return `
-            <tr class="${groupBgClass} hover:bg-amber-100 border-b border-gray-300 transition" id="row-${c.cscId}">
-                <td class="border border-gray-300 px-3 py-3 text-sm font-bold text-gray-700">${globalIdx}</td>
-                <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-gray-800">${c.district}</td>
-                <td class="border border-gray-300 px-3 py-3 text-sm font-medium text-gray-700">${c.block}</td>
-                <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-blue-600">${c.cscId}</td>
-                <td class="border border-gray-300 px-3 py-3 text-sm">
-                    <div class="font-bold text-gray-800">${c.vleName}</div>
-                    <div class="flex items-center gap-2 text-xs text-gray-600 mt-1">
-                        <span>${c.mobileNo || 'N/A'}</span>
-                        ${c.mobileNo ? `
-                            <a href="tel:${c.mobileNo}" class="bg-green-100 text-green-700 p-1 rounded-full hover:bg-green-200 transition" title="Direct Call">📞</a>
-                            <a href="https://wa.me/91${c.mobileNo}?text=Namaste%20VLE%20ji,%20aapke%20center%20verification%20ke%20sambandh%20mein." target="_blank" class="bg-emerald-100 text-emerald-700 p-1 rounded-full hover:bg-emerald-200 transition" title="WhatsApp Message">💬</a>
-                        ` : ''}
-                    </div>
-                </td>
-                <td class="border border-gray-300 px-3 py-3 text-sm">
-                    ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-100">🗺️ Map</a>` : 'N/A'}
-                </td>
-                <td class="border border-gray-300 px-3 py-3 text-sm text-center">
-                    ${renderThumbnailHtml(c.photoLink)}
-                </td>
-                <td class="border border-gray-300 px-3 py-3 text-sm text-gray-600 text-xs">${c.uploadTimestamp || 'N/A'}</td>
-                <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-gray-700">${c.priority || 'N/A'}</td>
-                <td class="border border-gray-300 px-3 py-3 text-sm">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-bold ${c.qcStatus === 'Approved' ? 'bg-green-100 text-green-700' : c.qcStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-800'}">${c.qcStatus}</span>
-                </td>
-                <td class="border border-gray-300 px-3 py-3 text-sm text-center">
-                    ${isFinalized ? `
-                        <span class="text-xs text-gray-400 font-semibold italic">Locked</span>
-                    ` : `
-                        <div class="flex justify-center items-center gap-3">
-                            <button onclick="handleApprove('${c.cscId}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">Approve</button>
-                            <button onclick="openRejectModal('${c.cscId}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">Reject</button>
-                        </div>
-                    `}
-                </td>
-            </tr>
-        `;
-    }).join('');
-
-    tbody.innerHTML = rowsHtml;
-    document.getElementById('pagination-info').innerText = `Showing ${startIndex + 1}-${endIndex} of ${filteredQcCenters.length}`;
-    
-    updatePageJumpDropdown(currentPage, totalPages);
-
-    document.getElementById('prev-btn').disabled = currentPage === 1;
-    document.getElementById('next-btn').disabled = currentPage >= totalPages;
-}
 
         function updatePageJumpDropdown(curr, total) {
             let select = document.getElementById('page-jump-select');
@@ -681,19 +700,182 @@
             }
         }
 
+        // SMART ROUTE PLANNER IMPLEMENTATION
         async function loadNearestCenters() {
             let district = document.getElementById('district-select').value;
             if (!district) {
                 alert('Kripya pehle district select karein!');
                 return;
             }
-            document.getElementById('loader').classList.add('hidden');
+
+            let startType = document.getElementById('start-type').value;
+            let lat = '';
+            let lon = '';
+
+            if (startType === 'manual') {
+                lat = document.getElementById('manual-lat').value;
+                lon = document.getElementById('manual-lon').value;
+                if (!lat || !lon) {
+                    alert('Kripya manual Latitude aur Longitude enter karein!');
+                    return;
+                }
+                proceedLoadRoute(district, lat, lon);
+            } else {
+                if (navigator.geolocation) {
+                    document.getElementById('loader').classList.remove('hidden');
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            lat = position.coords.latitude;
+                            lon = position.coords.longitude;
+                            proceedLoadRoute(district, lat, lon);
+                        },
+                        (error) => {
+                            document.getElementById('loader').classList.add('hidden');
+                            alert('GPS location fetch karne mein asafalta: ' + error.message + '. Kripya manual option use karein.');
+                        }
+                    );
+                } else {
+                    alert('Aapka browser Geolocation support nahi karta. Kripya manual option select karein.');
+                }
+            }
+        }
+
+        async function proceedLoadRoute(district, lat, lon) {
+            currentStartLat = parseFloat(lat);
+            currentStartLon = parseFloat(lon);
+
+            document.getElementById('loader').classList.remove('hidden');
             document.getElementById('welcome-msg').classList.add('hidden');
-            document.getElementById('content-container').classList.remove('hidden');
+            document.getElementById('content-container').classList.add('hidden');
+
+            try {
+                let url = `${API_URL}?action=dmRoute&district=${encodeURIComponent(district)}&lat=${lat}&lon=${lon}&limit=15`;
+                let response = await fetch(url);
+                let result = await response.json();
+                document.getElementById('loader').classList.add('hidden');
+
+                if (result.success) {
+                    fetchedCenters = result.centers || [];
+                    document.getElementById('content-container').classList.remove('hidden');
+                    document.getElementById('list-title').innerText = `Smart Sequential Route (${fetchedCenters.length} Centers Found)`;
+                    
+                    renderRouteTable();
+                    renderMiniMap();
+                } else {
+                    alert('Route data load karne mein samasya aayi.');
+                }
+            } catch (err) {
+                document.getElementById('loader').classList.add('hidden');
+                console.error(err);
+                alert('Connection error! Kripya dobara koshish karein.');
+            }
+        }
+
+        function renderRouteTable() {
+            let tbody = document.getElementById('table-body');
+            if (fetchedCenters.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-gray-500 font-semibold">Koi unverified centers nahi mile!</td></tr>`;
+                return;
+            }
+
+            let rowsHtml = fetchedCenters.map((c, idx) => {
+                let distText = c.distance !== null && c.distance !== undefined ? `${c.distance.toFixed(2)} km` : 'N/A';
+                return `
+                    <tr class="hover:bg-gray-50 border-b border-gray-300">
+                        <td class="border border-gray-300 px-4 py-3 text-sm font-bold text-gray-700">${idx + 1}</td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-800">${c.block}</td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm font-semibold text-blue-600">${c.cscId}</td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm text-gray-800 font-medium">${c.vleName}</td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm">
+                            <div>${c.mobileNo || 'N/A'}</div>
+                            ${c.mobileNo ? `
+                                <div class="flex gap-2 mt-1">
+                                    <a href="tel:${c.mobileNo}" class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-semibold">📞 Call</a>
+                                    <a href="https://wa.me/91${c.mobileNo}" target="_blank" class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold">💬 WhatsApp</a>
+                                </div>
+                            ` : ''}
+                        </td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm font-bold text-emerald-600">${distText}</td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm">
+                            <a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-100">🗺️ Map</a>
+                        </td>
+                        <td class="border border-gray-300 px-4 py-3 text-sm text-center">
+                            ${renderThumbnailHtml(c.photoLink)}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            tbody.innerHTML = rowsHtml;
+        }
+
+        function renderMiniMap() {
+            let mapContainer = document.getElementById('mini-map');
+            if (mapInstance) {
+                mapInstance.remove();
+            }
+
+            let initialLat = currentStartLat || (fetchedCenters.length > 0 ? fetchedCenters[0].lat : 21.2514);
+            let initialLon = currentStartLon || (fetchedCenters.length > 0 ? fetchedCenters[0].lon : 81.6296);
+
+            mapInstance = L.map('mini-map').setView([initialLat, initialLon], 11);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(mapInstance);
+
+            if (!isNaN(currentStartLat) && !isNaN(currentStartLon)) {
+                L.marker([currentStartLat, currentStartLon], {
+                    icon: L.divIcon({className: 'custom-start-marker', html: '🏠', iconSize: [24,24]})
+                }).addTo(mapInstance).bindPopup("<b>Starting Point</b>");
+            }
+
+            let latLngs = [];
+            if (!isNaN(currentStartLat) && !isNaN(currentStartLon)) {
+                latLngs.push([currentStartLat, currentStartLon]);
+            }
+
+            fetchedCenters.forEach((c, idx) => {
+                let marker = L.marker([c.lat, c.lon]).addTo(mapInstance);
+                marker.bindPopup(`<b>#${idx + 1} - ${c.cscId}</b><br>${c.vleName}<br>${c.block}`);
+                latLngs.push([c.lat, c.lon]);
+            });
+
+            if (latLngs.length > 0) {
+                let polyline = L.polyline(latLngs, {color: 'blue', weight: 4, opacity: 0.7}).addTo(mapInstance);
+                mapInstance.fitBounds(polyline.getBounds(), {padding: [50, 50]});
+            }
         }
 
         function openGoogleMapsRoutePart(part) {
-            alert('Route Part ' + part + ' opened!');
+            if (fetchedCenters.length === 0) {
+                alert('Koi centers available nahi hain!');
+                return;
+            }
+
+            let subset = [];
+            if (part === 1) {
+                subset = fetchedCenters.slice(0, 8);
+            } else {
+                subset = fetchedCenters.slice(8, 15);
+            }
+
+            if (subset.length === 0) {
+                alert('Is part ke liye koi centers nahi hain!');
+                return;
+            }
+
+            let origin = (!isNaN(currentStartLat) && !isNaN(currentStartLon)) ? `${currentStartLat},${currentStartLon}` : `${subset[0].lat},${subset[0].lon}`;
+            let destination = `${subset[subset.length - 1].lat},${subset[subset.length - 1].lon}`;
+            
+            let waypoints = subset.slice(0, subset.length - 1).map(c => `${c.lat},${c.lon}`).join('|');
+
+            let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+            if (waypoints) {
+                url += `&waypoints=${waypoints}`;
+            }
+
+            window.open(url, '_blank');
         }
     </script>
 </body>
