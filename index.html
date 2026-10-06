@@ -467,39 +467,37 @@
         }
 
         async function submitQcAction(cscId, status, remark) {
-            showGlobalLoader(`Status update ho raha hai (${status})...`);
-            try {
-                let response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain;charset=utf-8'
-                    },
-                    body: JSON.stringify({
-                        action: 'updateQCStatus',
-                        cscId: cscId,
-                        status: status,
-                        remark: remark
-                    })
-                });
-                let result = await response.json();
-                hideGlobalLoader();
-                if (result.success) {
-                    let item = allQcCenters.find(c => c.cscId === cscId);
-                    if (item) {
-                        item.qcStatus = status;
-                    }
-                    filterQCData();
-                    alert(`Success: Status successfully updated to ${status}!`);
-                } else {
-                    alert('Status update karne mein asafalta aayi: ' + (result.message || 'Unknown error'));
-                }
-            } catch (err) {
-                hideGlobalLoader();
-                console.error(err);
-                alert('Connection error! Kripya dobara koshish karein.');
-            }
+    showGlobalLoader(`Status update ho raha hai (${status})...`);
+    try {
+        let response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: JSON.stringify({
+                action: 'updateQCStatus',
+                cscId: cscId,
+                status: status,
+                remark: remark
+            })
+        });
+        let result = await response.json();
+        
+        if (result.success) {
+            // 💡 Success hone par turant background se fresh data load kar lo taaki row instant lock ho jaye
+            await loadPendingQC();
+            hideGlobalLoader();
+            alert(`Success: Status successfully updated to ${status}!`);
+        } else {
+            hideGlobalLoader();
+            alert('Status update karne mein asafalta aayi: ' + (result.message || 'Unknown error'));
         }
-
+    } catch (err) {
+        hideGlobalLoader();
+        console.error(err);
+        alert('Connection error! Kripya dobara koshish karein.');
+    }
+}
         async function loadPendingQC() {
             // 💡 Reset filters to default on every reload/view click
             document.getElementById('qc-search').value = '';
