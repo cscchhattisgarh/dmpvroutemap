@@ -138,6 +138,9 @@
                             <option value="ALL">All Priorities</option>
                         </select>
                     </div>
+                    <button onclick="exportQCTableToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
+                        📊 Export to Excel
+                    </button>
                 </div>
             </div>
 
@@ -259,6 +262,9 @@
                         <p class="text-xs text-gray-500">Nearest Neighbor chaining algorithm dwara optimized route.</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
+                        <button onclick="exportRouteTableToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
+                            📊 Export Route to Excel
+                        </button>
                         <button onclick="openGoogleMapsRoutePart(1)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm">
                             🗺 Route Part 1 (Centers 1-8)
                         </button>
@@ -314,7 +320,6 @@
             
             <select id="rejection-remark-select" onchange="handleRejectReasonChange()" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm">
                 <option value="">-- Reason Select Karein --</option>
-                <option value="Common Branding ka Banner Nhi Laga Hai">Common Branding ka Banner Nhi Laga Hai</option>
                 <option value="Lohe Ke Frame Me Banner Nahi Laga Hai">Lohe Ke Frame Me Banner Nahi Laga Hai</option>
                 <option value="Branding Ka Poster Clear Dikhai Nhi De Raha Hai">Branding Ka Poster Clear Dikhai Nhi De Raha Hai</option>
                 <option value="Branding ka Photo Center Ke Bahar Nahi Laga Hai">Branding ka Photo Center Ke Bahar Nahi Laga Hai</option>
@@ -446,7 +451,6 @@
             }
         }
 
-        // 💡 Modal open hone par reset karna
         function openRejectModal(cscId) {
             selectedCscForReject = cscId;
             document.getElementById('rejection-remark-select').value = "";
@@ -460,7 +464,6 @@
             document.getElementById('reject-modal').classList.add('hidden');
         }
 
-        // 💡 Other Issue select hone par text box dikhane/chupane ke liye
         function handleRejectReasonChange() {
             let selectVal = document.getElementById('rejection-remark-select').value;
             let otherBox = document.getElementById('other-reason-box');
@@ -475,10 +478,11 @@
 
         async function handleApprove(cscId) {
             if (!confirm(`Kya aap CSC ID: ${cscId} ki photo approve karna chahte hain?`)) return;
-            await submitQcAction(cscId, 'Approved', '');
+            let centerObj = allQcCenters.find(c => c.cscId === cscId);
+            let rowIndex = centerObj ? centerObj.rowIndex : null;
+            await submitQcAction(cscId, 'Approved', '', rowIndex);
         }
 
-        // 💡 Custom typed text ko check karke sheet me bhejne ke liye
         async function confirmRejectSubmit() {
             let selectVal = document.getElementById('rejection-remark-select').value;
             let reason = selectVal;
@@ -499,11 +503,14 @@
 
             if (!selectedCscForReject) return;
             let cscId = selectedCscForReject;
+            let centerObj = allQcCenters.find(c => c.cscId === cscId);
+            let rowIndex = centerObj ? centerObj.rowIndex : null;
+
             closeRejectModal();
-            await submitQcAction(cscId, 'Rejected', reason);
+            await submitQcAction(cscId, 'Rejected', reason, rowIndex);
         }
 
-        async function submitQcAction(cscId, status, remark) {
+        async function submitQcAction(cscId, status, remark, rowIndex) {
             showGlobalLoader(`Status update ho raha hai (${status})...`);
             try {
                 let response = await fetch(API_URL, {
@@ -515,7 +522,8 @@
                         action: 'updateQCStatus',
                         cscId: cscId,
                         status: status,
-                        remark: remark
+                        remark: remark,
+                        rowIndex: rowIndex
                     })
                 });
                 let result = await response.json();
@@ -918,6 +926,74 @@
             }
 
             window.open(url, '_blank');
+        }
+
+        // 📊 Export QC Table to Excel (Columns: B, C, D, E, F, G, K, L)
+        function exportQCTableToExcel() {
+            if (!filteredQcCenters || filteredQcCenters.length === 0) {
+                alert('Export karne ke liye koi data available nahi hai!');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "S.No,District (B),Block (C),CSC ID (D),VLE Name (E),Mobile No (F),Full Address & Landmark (G),Priority (K),Current Status / Remark (L)\r\n";
+
+            filteredQcCenters.forEach((c, idx) => {
+                let row = [
+                    idx + 1,
+                    `"${(c.district || '').replace(/"/g, '""')}"`,
+                    `"${(c.block || '').replace(/"/g, '""')}"`,
+                    `"${(c.cscId || '').replace(/"/g, '""')}"`,
+                    `"${(c.vleName || '').replace(/"/g, '""')}"`,
+                    `"${(c.mobileNo || '').replace(/"/g, '""')}"`,
+                    `"${(c.address || '').replace(/"/g, '""')}"`,
+                    `"${(c.priority || '').replace(/"/g, '""')}"`,
+                    `"${(c.qcStatus || '').replace(/"/g, '""')}"`
+                ];
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "QC_Verification_Report_Filtered.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // 📊 Export Smart Route Table to Excel (Columns: B, C, D, E, F, G + Leg Distance)
+        function exportRouteTableToExcel() {
+            if (!fetchedCenters || fetchedCenters.length === 0) {
+                alert('Export karne ke liye koi route centers available nahi hain!');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "S.No,District (B),Block (C),CSC ID (D),VLE Name (E),Mobile No (F),Full Address & Landmark (G),Leg Distance\r\n";
+
+            fetchedCenters.forEach((c, idx) => {
+                let dist = c.distance !== null && c.distance !== undefined ? `${c.distance.toFixed(2)} km` : 'N/A';
+                let row = [
+                    idx + 1,
+                    `"${(c.district || '').replace(/"/g, '""')}"`,
+                    `"${(c.block || '').replace(/"/g, '""')}"`,
+                    `"${(c.cscId || '').replace(/"/g, '""')}"`,
+                    `"${(c.vleName || '').replace(/"/g, '""')}"`,
+                    `"${(c.mobileNo || '').replace(/"/g, '""')}"`,
+                    `"${(c.address || '').replace(/"/g, '""')}"`,
+                    `"${dist}"`
+                ];
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            let encodedUri = encodeURI(csvContent);
+            let link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "Smart_Route_Plan_15_Centers.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>
