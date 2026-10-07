@@ -322,7 +322,7 @@
                 <option value="">-- Reason Select Karein --</option>
                 <option value="Lohe Ke Frame Me Banner Nahi Laga Hai">Lohe Ke Frame Me Banner Nahi Laga Hai</option>
                 <option value="Branding Ka Poster Clear Dikhai Nhi De Raha Hai">Branding Ka Poster Clear Dikhai Nhi De Raha Hai</option>
-                <option value="Branding ka Photo Center Ke Bahar Nahi Laga Hai">Branding ka Photo Center Ke Bahar Nahi Laga Hai</option>
+                <option value="Branding ka Photo Center Ke Bahar Nahi Laga Hai">Branding ka Photo Center Ke Bahar/Samne Upar Me Nahi Laga Hai</option>
                 <option value="Branding ka Photo Damaged ya Kharab Ho Chuka Hai">Branding ka Photo Damaged ya Kharab Ho Chuka Hai</option>
                 <option value="Other Issue">Other Issue</option>
             </select>
@@ -349,6 +349,7 @@
         let currentPage = 1;
         const pageSize = 10;
         let selectedCscForReject = null;
+        let selectedRowIndexForReject = null; // Added to hold exact row index for rejection
         
         let fetchedCenters = [];
         let currentStartLat = null;
@@ -451,8 +452,9 @@
             }
         }
 
-        function openRejectModal(cscId) {
+        function openRejectModal(cscId, rowIndex) {
             selectedCscForReject = cscId;
+            selectedRowIndexForReject = rowIndex; // Save exact row index
             document.getElementById('rejection-remark-select').value = "";
             document.getElementById('custom-rejection-remark').value = "";
             document.getElementById('other-reason-box').classList.add('hidden');
@@ -461,6 +463,7 @@
 
         function closeRejectModal() {
             selectedCscForReject = null;
+            selectedRowIndexForReject = null;
             document.getElementById('reject-modal').classList.add('hidden');
         }
 
@@ -476,10 +479,8 @@
             }
         }
 
-        async function handleApprove(cscId) {
+        async function handleApprove(cscId, rowIndex) {
             if (!confirm(`Kya aap CSC ID: ${cscId} ki photo approve karna chahte hain?`)) return;
-            let centerObj = allQcCenters.find(c => c.cscId === cscId);
-            let rowIndex = centerObj ? centerObj.rowIndex : null;
             await submitQcAction(cscId, 'Approved', '', rowIndex);
         }
 
@@ -503,8 +504,7 @@
 
             if (!selectedCscForReject) return;
             let cscId = selectedCscForReject;
-            let centerObj = allQcCenters.find(c => c.cscId === cscId);
-            let rowIndex = centerObj ? centerObj.rowIndex : null;
+            let rowIndex = selectedRowIndexForReject; // Use exact saved row index
 
             closeRejectModal();
             await submitQcAction(cscId, 'Rejected', reason, rowIndex);
@@ -699,8 +699,8 @@
                                 <span class="text-xs text-gray-400 font-semibold italic">Locked</span>
                             ` : `
                                 <div class="flex justify-center items-center gap-3">
-                                    <button onclick="handleApprove('${c.cscId}')" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">Approve</button>
-                                    <button onclick="openRejectModal('${c.cscId}')" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">Reject</button>
+                                    <button onclick="handleApprove('${c.cscId}',${c.rowIndex})" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">Approve</button>
+                                    <button onclick="openRejectModal('${c.cscId}',${c.rowIndex})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs font-bold shadow transition">Reject</button>
                                 </div>
                             `}
                         </td>
