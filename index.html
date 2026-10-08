@@ -149,17 +149,17 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse border border-gray-300">
                         <thead>
-                            <tr class="bg-gray-100 text-gray-700 uppercase text-xs tracking-wider border-b border-gray-300">
-                                <th class="border border-gray-300 px-3 py-3">#</th>
-                                <th class="border border-gray-300 px-3 py-3">District</th>
-                                <th class="border border-gray-300 px-3 py-3">Block</th>
-                                <th class="border border-gray-300 px-3 py-3">CSC ID</th>
-                                <th class="border border-gray-300 px-3 py-3">VLE Name & Mobile</th>
-                                <th class="border border-gray-300 px-3 py-3">Location</th>
+                            <tr class="bg-gray-100 text-gray-700 uppercase text-xs tracking-wider border-b border-gray-300 select-none">
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortQcTable('srNo')"># ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortQcTable('district')">District ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortQcTable('block')">Block ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortQcTable('cscId')">CSC ID ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortQcTable('vleName')">VLE Name & Mobile ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortQcTable('location')">Location ↕</th>
                                 <th class="border border-gray-300 px-3 py-3 text-center">Branding Photo</th>
-                                <th class="border border-gray-300 px-3 py-3">Upload Date & Time</th>
-                                <th class="border border-gray-300 px-3 py-3">Priority</th>
-                                <th class="border border-gray-300 px-3 py-3">Current Status</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortQcTable('uploadTimestamp')">Upload Date & Time ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortQcTable('priority')">Priority ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortQcTable('qcStatus')">Current Status ↕</th>
                                 <th class="border border-gray-300 px-3 py-3 text-center">Action</th>
                             </tr>
                         </thead>
@@ -326,7 +326,6 @@
                 <option value="Branding ka Photo Center Ke Bahar Nahi Laga Hai">Branding ka Photo Center Ke Bahar/Samne Upar Me Nahi Laga Hai</option>
                 <option value="Branding ka Photo Damaged ya Kharab Ho Chuka Hai">Branding ka Photo Damaged ya Kharab Ho Chuka Hai</option>
                 <option value="AI Generated Branding ki Photo Upload ki gyi hai">AI Generated Branding ki Photo Upload ki gyi hai</option>
-               
                 <option value="Other Issue">Other Issue</option>
             </select>
 
@@ -358,6 +357,10 @@
         let currentStartLat = null;
         let currentStartLon = null;
         let mapInstance = null;
+
+        // Sorting tracking state variables
+        let qcSortColumn = null;
+        let qcSortAsc = true;
 
         function showGlobalLoader(message) {
             if (message) {
@@ -633,8 +636,48 @@
                 return matchQuery && matchStatus && matchPriority;
             });
 
+            // Re-apply current sorting if active
+            if (qcSortColumn) {
+                applySortToFiltered();
+            }
+
             currentPage = 1;
             renderQCTable();
+        }
+
+        // Table Sorting Logic for all columns
+        function sortQcTable(columnKey) {
+            if (qcSortColumn === columnKey) {
+                qcSortAsc = !qcSortAsc;
+            } else {
+                qcSortColumn = columnKey;
+                qcSortAsc = true;
+            }
+            applySortToFiltered();
+            currentPage = 1;
+            renderQCTable();
+        }
+
+        function applySortToFiltered() {
+            if (!qcSortColumn) return;
+            filteredQcCenters.sort((a, b) => {
+                let valA = a[qcSortColumn];
+                let valB = b[qcSortColumn];
+
+                if (qcSortColumn === 'srNo') {
+                    valA = Number(valA || 0);
+                    valB = Number(valB || 0);
+                    return qcSortAsc ? valA - valB : valB - valA;
+                } else if (qcSortColumn === 'uploadTimestamp') {
+                    let timeA = valA ? new Date(valA).getTime() : 0;
+                    let timeB = valB ? new Date(valB).getTime() : 0;
+                    return qcSortAsc ? timeA - timeB : timeB - timeA;
+                } else {
+                    let strA = String(valA || '').trim().toLowerCase();
+                    let strB = String(valB || '').trim().toLowerCase();
+                    return qcSortAsc ? strA.localeCompare(strB) : strB.localeCompare(strA);
+                }
+            });
         }
 
         function renderQCTable() {
@@ -659,6 +702,7 @@
 
             let rowsHtml = paginatedItems.map((c, idx) => {
                 let globalIdx = startIndex + idx + 1;
+                c.srNo = globalIdx; // Assign srNo for sorting reference
                 
                 let statusUpper = (c.qcStatus || '').trim().toUpperCase();
                 let isFinalized = (statusUpper === 'APPROVED' || statusUpper === 'PV DONE' || statusUpper === 'REJECTED');
@@ -991,7 +1035,7 @@
             });
 
             let encodedUri = encodeURI(csvContent);
-            let link = document.createElement("a");
+            link = document.createElement("a");
             link.setAttribute("href", encodedUri);
             link.setAttribute("download", "Smart_Route_Plan_15_Centers.csv");
             document.body.appendChild(link);
