@@ -665,38 +665,55 @@
             renderPendingVLETable();
         }
 
-        function exportPendingToCSV() {
-            if (!filteredPendingVLEs || filteredPendingVLEs.length === 0) {
-                alert('Export ke liye koi data available nahi hai!');
-                return;
-            }
+       function exportPendingToCSV() {
+    let selectedDistrict = document.getElementById('pending-district-select').value;
+    let dataToExport = [];
 
-            let districtVal = document.getElementById('pending-district-select').value;
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "S.No,District,Block,CSC ID,VLE Name,Mobile No,Priority\r\n";
+    // Agar "ALL" select hai toh saara data export hoga, warna sirf selected district ka
+    if (selectedDistrict === "ALL") {
+        dataToExport = allPendingVLEs;
+    } else {
+        dataToExport = allPendingVLEs.filter(v => {
+            return String(v.district || '').trim().toLowerCase() === selectedDistrict.trim().toLowerCase();
+        });
+    }
 
-            filteredPendingVLEs.forEach((v, idx) => {
-                let row = [
-                    idx + 1,
-                    `"${(v.district || '').replace(/"/g, '""')}"`,
-                    `"${(v.block || '').replace(/"/g, '""')}"`,
-                    `"${(v.cscId || '').replace(/"/g, '""')}"`,
-                    `"${(v.vleName || '').replace(/"/g, '""')}"`,
-                    `"${(v.mobileNo || '').replace(/"/g, '""')}"`,
-                    `"${(v.priority || '').replace(/"/g, '""')}"`
-                ];
-                csvContent += row.join(",") + "\r\n";
-            });
+    if (!dataToExport || dataToExport.length === 0) {
+        alert('Export ke liye koi data available nahi hai!');
+        return;
+    }
 
-            let encodedUri = encodeURI(csvContent);
-            let link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Pending_Branding_Upload_${districtVal}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+    // CSV Headers
+    let csvRows = [];
+    csvRows.push(["S.No", "District", "Block", "CSC ID", "VLE Name", "Mobile No", "Priority"]);
 
+    // Data rows push karein
+    dataToExport.forEach((v, idx) => {
+        csvRows.push([
+            idx + 1,
+            v.district || '',
+            v.block || '',
+            v.cscId || '',
+            v.vleName || '',
+            v.mobileNo || '',
+            v.priority || ''
+        ]);
+    });
+
+    // CSV format mein convert karna (Quotes aur commas ko escape karte hue)
+    let csvContent = csvRows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+
+    // Blob ke zariye file download trigger karna (Bina size limit ya encoding issue ke)
+    let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    let url = URL.createObjectURL(blob);
+    let link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Pending_Branding_Upload_${selectedDistrict}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
         function getDirectDriveUrl(url) {
             if (!url) return '';
             let fileId = '';
