@@ -184,10 +184,10 @@
         <!-- TAB 2: SMART ROUTE PLANNER -->
         <div id="section-route" class="space-y-6 hidden">
             <div class="bg-white p-6 rounded-xl shadow-sm space-y-4 border border-gray-200">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Select District:</label>
-                        <select id="district-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
+                        <select id="district-select" onchange="onDistrictChangeForRoute()" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
                             <option value="">-- District Select Karein --</option>
                             <option value="Balod">Balod</option>
                             <option value="Baloda Bazar">Baloda Bazar</option>
@@ -225,6 +225,12 @@
                         </select>
                     </div>
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Filter by Block:</label>
+                        <select id="route-block-filter" onchange="renderRouteTable()" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
+                            <option value="ALL">🌐 All Blocks</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Starting Point Select Karein:</label>
                         <select id="start-type" onchange="toggleStartInput()" class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white">
                             <option value="gps">📍 Use My Current GPS Location</option>
@@ -240,7 +246,7 @@
 
                 <div class="flex justify-end pt-2">
                     <button onclick="loadNearestCenters()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2.5 rounded-lg shadow transition">
-                        Find Nearest 15 Unverified Centers
+                        Load All Approved Unverified Centers
                     </button>
                 </div>
             </div>
@@ -260,11 +266,11 @@
                         <button onclick="exportRouteTableToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm flex items-center gap-1.5">
                             📊 Export Route to Excel
                         </button>
-                        <button onclick="openGoogleMapsRoutePart(1)" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm">
-                            🗺 Route Part 1 (Centers 1-8)
+                        <button onclick="openGoogleMapsRouteOverall()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm">
+                            🗺 Route Map for Nearest 15 from District
                         </button>
-                        <button id="btn-part2" onclick="openGoogleMapsRoutePart(2)" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm">
-                            🗺 Route Part 2 (Centers 9-15)
+                        <button onclick="openGoogleMapsRouteSelected()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition text-sm">
+                            🗺 Route Map for Selected/Blockwise Centers
                         </button>
                     </div>
                 </div>
@@ -279,13 +285,16 @@
                         <table class="w-full text-left border-collapse border border-gray-300">
                             <thead>
                                 <tr class="bg-gray-100 text-gray-700 uppercase text-xs tracking-wider border-b border-gray-300">
+                                    <th class="border border-gray-300 px-3 py-3 text-center">
+                                        <input type="checkbox" id="select-all-checkbox" onclick="toggleSelectAllRoute(this)" class="w-4 h-4 cursor-pointer" checked title="Select/Deselect All">
+                                    </th>
                                     <th class="border border-gray-300 px-4 py-3">#</th>
                                     <th class="border border-gray-300 px-4 py-3">Block</th>
                                     <th class="border border-gray-300 px-4 py-3">CSC ID</th>
                                     <th class="border border-gray-300 px-4 py-3">VLE Name</th>
                                     <th class="border border-gray-300 px-4 py-3">Mobile & Direct Connect</th>
                                     <th class="border border-gray-300 px-4 py-3">Leg Distance</th>
-                                    <th class="border border-gray-300 px-4 py-3">Location</th>
+                                    <th class="border border-gray-300 px-4 py-3">Location & Address</th>
                                     <th class="border border-gray-300 px-4 py-3">Branding Photo</th>
                                 </tr>
                             </thead>
@@ -442,6 +451,42 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzCIVhYltXttOFEVta3MGprydflFx1yosaEYgYB7ujuaBsd5s7zNnnPAhFeSc2F4gYz/exec";
         
+        const blockData = {
+            "Balod": ["BALOD", "DONDI", "DONDI LUHARA", "GUNDERDEHI", "GURUR"],
+            "Baloda Bazar": ["BALODA BAZAR", "BHATAPARA", "KASDOL", "PALARI", "SIMGA"],
+            "Balrampur": ["BALRAMPUR", "RAJPUR", "RAMANUJGANJ", "SAMRI(KUSMI)", "SHANKARGARH", "WADRAFNAGAR"],
+            "Bastar": ["BAKAVAND", "BASTANAR", "BASTAR", "DARBHA", "JAGDALPUR", "LOHANDIGUDA", "TOKAPAL"],
+            "Bemetara": ["BEMETARA", "BERLA", "NAWAGARH - B", "SAJA", "THANAKHAMRIA"],
+            "Bijapur": ["BHAIRAMGARH", "BHOPALPATTNAM", "BIJAPUR", "USUR"],
+            "Bilaspur": ["BILHA", "KOTA", "MASTURI", "TAKHATPUR"],
+            "Dantewada": ["BADE BACHELI", "DANTEWADA", "GIDAM", "KATEKALYAN", "KUAKONDA"],
+            "Dhamtari": ["DHAMTARI", "KURUD", "MAGARLOD", "NAGRI"],
+            "Durg": ["DHAMDHA", "DURG", "PATAN"],
+            "Gariyaband": ["BINDRANAVAGARH(GARIABAND)", "CHHURA", "DEOBHOG", "MAINPUR", "RAJIM"],
+            "Gaurela-Pendra-Marwahi": ["MARWAHI", "PENDRA", "PENDRA ROAD GORELLA"],
+            "Janjgir-Champa": ["AKALTARA", "BALODA", "BAMHINDIH", "NAWAGARH - J", "PAMGARH"],
+            "Jashpur": ["BAGICHA", "DULDULA", "FARSABAHAR", "JASHPUR", "KANSABEL", "KUNKURI", "MANORA", "PATTHALGAON"],
+            "Kabirdham": ["BODLA", "KAWARDHA", "PANDARIYA", "SAHASPUR LOHARA"],
+            "Kanker": ["ANTAGARH", "BHANUPRATAPPUR", "CHARAMA", "DURGKONDAL", "KANKER", "KOYALIBEDA", "NARHARPUR", "PAKHANJUR"],
+            "Khairagarh-Chhuikhadan-Gandai": ["CHHUIKHADAN", "GANDAI", "KHAIRAGARH"],
+            "Kondagaon": ["BADE RAJPUR", "FARASGAON", "KESKAL", "KONDAGAON", "MAKDI"],
+            "Korba": ["KARTALA", "KATGHORA", "KORBA", "PALI", "POUNDI-UPRODA"],
+            "Koriya": ["BAIKUNTHPUR", "SONHAT"],
+            "Mahasamund": ["BAGBAHRA", "BASNA", "KOMAKHAN", "MAHASAMUND", "PITHORA", "SARAIPALI"],
+            "Manendragarh-Chirmiri-Bharatpur": ["BHARATPUR", "KHADGANVA", "MANENDRAGARH"],
+            "Mohla-Manpur-Ambagarh Chowki": ["AMBAGARH", "MANPUR", "MOHLA"],
+            "Mungeli": ["LORMI", "MUNGELI", "PATHARIYA"],
+            "Narayanpur": ["NARAYANPUR", "ORCHHA"],
+            "Raigarh": ["GHARGHODA", "KHARSIA", "LAILUNGA", "PUSOUR", "RAIGARH", "TAMNAR", "UDAIPUR (DHARAMJAIGARH)"],
+            "Raipur": ["ABHANPUR", "ARANG", "DHARSIWA", "TILDA"],
+            "Rajnandgaon": ["CHHURIYA", "DONGARGAON", "DONGARGARH", "RAJNANDGAON"],
+            "Sakti": ["DABHARA", "JAIJAIPUR", "MALKHARODA", "SAKTI"],
+            "Sarangarh-Bilaigarh": ["BARAMKELA", "BILAIGARH", "SARANGARH"],
+            "Sukma": ["CHHINDGARH", "KONTA", "SUKMA"],
+            "Surajpur": ["BHAIYATHAN", "ODAGI", "PRATAPPUR", "PREMNAGAR", "RAMANUJNAGAR", "SURAJPUR"],
+            "Surguja": ["AMBIKAPUR", "BATOULI", "LAKHANPUR", "LUNDRA", "MAINPAT", "SITAPUR", "UDAYPUR"]
+        };
+
         let allQcCenters = [];
         let filteredQcCenters = [];
         let currentPage = 1;
@@ -665,55 +710,51 @@
             renderPendingVLETable();
         }
 
-       function exportPendingToCSV() {
-    let selectedDistrict = document.getElementById('pending-district-select').value;
-    let dataToExport = [];
+        function exportPendingToCSV() {
+            let selectedDistrict = document.getElementById('pending-district-select').value;
+            let dataToExport = [];
 
-    // Agar "ALL" select hai toh saara data export hoga, warna sirf selected district ka
-    if (selectedDistrict === "ALL") {
-        dataToExport = allPendingVLEs;
-    } else {
-        dataToExport = allPendingVLEs.filter(v => {
-            return String(v.district || '').trim().toLowerCase() === selectedDistrict.trim().toLowerCase();
-        });
-    }
+            if (selectedDistrict === "ALL") {
+                dataToExport = allPendingVLEs;
+            } else {
+                dataToExport = allPendingVLEs.filter(v => {
+                    return String(v.district || '').trim().toLowerCase() === selectedDistrict.trim().toLowerCase();
+                });
+            }
 
-    if (!dataToExport || dataToExport.length === 0) {
-        alert('Export ke liye koi data available nahi hai!');
-        return;
-    }
+            if (!dataToExport || dataToExport.length === 0) {
+                alert('Export ke liye koi data available nahi hai!');
+                return;
+            }
 
-    // CSV Headers
-    let csvRows = [];
-    csvRows.push(["S.No", "District", "Block", "CSC ID", "VLE Name", "Mobile No", "Priority"]);
+            let csvRows = [];
+            csvRows.push(["S.No", "District", "Block", "CSC ID", "VLE Name", "Mobile No", "Priority"]);
 
-    // Data rows push karein
-    dataToExport.forEach((v, idx) => {
-        csvRows.push([
-            idx + 1,
-            v.district || '',
-            v.block || '',
-            v.cscId || '',
-            v.vleName || '',
-            v.mobileNo || '',
-            v.priority || ''
-        ]);
-    });
+            dataToExport.forEach((v, idx) => {
+                csvRows.push([
+                    idx + 1,
+                    v.district || '',
+                    v.block || '',
+                    v.cscId || '',
+                    v.vleName || '',
+                    v.mobileNo || '',
+                    v.priority || ''
+                ]);
+            });
 
-    // CSV format mein convert karna (Quotes aur commas ko escape karte hue)
-    let csvContent = csvRows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+            let csvContent = csvRows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(",")).join("\r\n");
 
-    // Blob ke zariye file download trigger karna (Bina size limit ya encoding issue ke)
-    let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    let url = URL.createObjectURL(blob);
-    let link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `Pending_Branding_Upload_${selectedDistrict}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-}
+            let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            let url = URL.createObjectURL(blob);
+            let link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Pending_Branding_Upload_${selectedDistrict}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
         function getDirectDriveUrl(url) {
             if (!url) return '';
             let fileId = '';
@@ -990,7 +1031,8 @@
                             </div>
                         </td>
                         <td class="border border-gray-300 px-3 py-3 text-sm">
-                            ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-100">🗺️ Map</a>` : 'N/A'}
+                            <div class="text-gray-800 font-medium text-xs mb-1">${c.address || 'Address available nahi hai'}</div>
+                            ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="inline-block bg-blue-50 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold hover:bg-blue-100">🗺️ Map</a>` : 'N/A'}
                         </td>
                         <td class="border border-gray-300 px-3 py-3 text-sm text-center">${renderThumbnailHtml(c.photoLink)}</td>
                         <td class="border border-gray-300 px-3 py-3 text-sm text-gray-600 text-xs">${c.uploadTimestamp || 'N/A'}</td>
@@ -1031,6 +1073,21 @@
             else manualBox.classList.add('hidden');
         }
 
+        function onDistrictChangeForRoute() {
+            let district = document.getElementById('district-select').value;
+            let blockSelect = document.getElementById('route-block-filter');
+            blockSelect.innerHTML = '<option value="ALL">🌐 All Blocks</option>';
+            
+            if (district && blockData[district]) {
+                blockData[district].forEach(b => {
+                    let opt = document.createElement('option');
+                    opt.value = b;
+                    opt.textContent = b;
+                    blockSelect.appendChild(opt);
+                });
+            }
+        }
+
         async function loadNearestCenters() {
             let district = document.getElementById('district-select').value;
             if (!district) { alert('Kripya pehle district select karein!'); return; }
@@ -1060,12 +1117,13 @@
             document.getElementById('content-container').classList.add('hidden');
 
             try {
-                let response = await fetch(`${API_URL}?action=dmRoute&district=${encodeURIComponent(district)}&lat=${lat}&lon=${lon}&limit=15`);
+                let response = await fetch(`${API_URL}?action=dmRoute&district=${encodeURIComponent(district)}&lat=${lat}&lon=${lon}&limit=50`);
                 let result = await response.json();
                 hideGlobalLoader();
 
                 if (result.success) {
                     fetchedCenters = result.centers || [];
+                    onDistrictChangeForRoute();
                     document.getElementById('content-container').classList.remove('hidden');
                     document.getElementById('list-title').innerText = `Smart Sequential Route (${fetchedCenters.length} Centers Found)`;
                     renderRouteTable();
@@ -1076,14 +1134,55 @@
             }
         }
 
+        function toggleSelectAllRoute(selectAllCheckbox) {
+            let checkboxes = document.querySelectorAll('.route-row-checkbox');
+            let checkedCount = 0;
+
+            checkboxes.forEach(cb => {
+                let rowEl = cb.closest('tr');
+                // Agar row visible hai (block filter ke tahat hidden nahi hai)
+                if (rowEl.style.display !== 'none') {
+                    if (selectAllCheckbox.checked && checkedCount < 15) {
+                        cb.checked = true;
+                        checkedCount++;
+                    } else {
+                        cb.checked = false;
+                    }
+                }
+            });
+
+            if (selectAllCheckbox.checked && checkboxes.length > 15) {
+                alert('Maximum 15 centers hi ek baar mein select ho sakte hain!');
+            }
+        }
+
+        function handleCheckboxChange(cb) {
+            let checkedCount = document.querySelectorAll('.route-row-checkbox:checked').length;
+            if (checkedCount > 15) {
+                cb.checked = false;
+                alert('Aap maximum sirf 15 centers hi select kar sakte hain!');
+            }
+        }
+
         function renderRouteTable() {
             let tbody = document.getElementById('table-body');
-            if (fetchedCenters.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" class="px-4 py-6 text-center text-gray-500 font-semibold">Koi unverified centers nahi mile!</td></tr>`;
+            let selectedBlock = document.getElementById('route-block-filter').value;
+
+            let displayCenters = fetchedCenters.filter(c => {
+                if (selectedBlock === 'ALL') return true;
+                return String(c.block || '').trim().toUpperCase() === selectedBlock.trim().toUpperCase();
+            });
+
+            if (displayCenters.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500 font-semibold">Is block ke liye koi unverified centers nahi mile!</td></tr>`;
                 return;
             }
-            tbody.innerHTML = fetchedCenters.map((c, idx) => `
+
+            tbody.innerHTML = displayCenters.map((c, idx) => `
                 <tr class="hover:bg-gray-50 border-b border-gray-300">
+                    <td class="border border-gray-300 px-3 py-3 text-center">
+                        <input type="checkbox" value="${c.cscId}" class="route-row-checkbox w-4 h-4 cursor-pointer" onchange="handleCheckboxChange(this)" ${idx < 15 ? 'checked' : ''}>
+                    </td>
                     <td class="border border-gray-300 px-4 py-3 text-sm font-bold text-gray-700">${idx + 1}</td>
                     <td class="border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-800">${c.block}</td>
                     <td class="border border-gray-300 px-4 py-3 text-sm font-semibold text-blue-600">${c.cscId}</td>
@@ -1093,10 +1192,15 @@
                         ${c.mobileNo ? `<div class="flex gap-2 mt-1"><a href="tel:${c.mobileNo}" class="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-semibold">📞 Call</a><a href="https://wa.me/91${c.mobileNo}" target="_blank" class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-semibold">💬 WhatsApp</a></div>` : ''}
                     </td>
                     <td class="border border-gray-300 px-4 py-3 text-sm font-bold text-emerald-600">${c.distance !== null ? `${c.distance.toFixed(2)} km` : 'N/A'}</td>
-                    <td class="border border-gray-300 px-4 py-3 text-sm"><a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="bg-blue-50 text-blue-800 px-2 py-1 rounded text-xs font-semibold hover:bg-blue-100">🗺️ Map</a></td>
+                    <td class="border border-gray-300 px-4 py-3 text-sm">
+                        <div class="text-gray-800 font-medium text-xs mb-1">${c.address || 'Address available nahi hai'}</div>
+                        ${c.lat && c.lon ? `<a href="https://www.google.com/maps?q=${c.lat},${c.lon}" target="_blank" class="inline-block bg-blue-50 text-blue-800 px-2 py-0.5 rounded text-xs font-semibold hover:bg-blue-100">🗺️ Open Map</a>` : '<span class="text-xs text-gray-400">Map N/A</span>'}
+                    </td>
                     <td class="border border-gray-300 px-4 py-3 text-sm text-center">${renderThumbnailHtml(c.photoLink)}</td>
                 </tr>
             `).join('');
+
+            document.getElementById('select-all-checkbox').checked = false;
         }
 
         function renderMiniMap() {
@@ -1125,14 +1229,48 @@
             }
         }
 
-        function openGoogleMapsRoutePart(part) {
+        // Button 1: Route Map for Nearest 15 centers from overall district
+        function openGoogleMapsRouteOverall() {
             if (fetchedCenters.length === 0) { alert('Koi centers available nahi hain!'); return; }
-            let subset = part === 1 ? fetchedCenters.slice(0, 8) : fetchedCenters.slice(8, 15);
-            if (subset.length === 0) { alert('Is part ke liye koi centers nahi hain!'); return; }
+            let subset = fetchedCenters.slice(0, 15);
 
             let origin = (!isNaN(currentStartLat) && !isNaN(currentStartLon)) ? `${currentStartLat},${currentStartLon}` : `${subset[0].lat},${subset[0].lon}`;
             let destination = `${subset[subset.length - 1].lat},${subset[subset.length - 1].lon}`;
             let waypoints = subset.slice(0, subset.length - 1).map(c => `${c.lat},${c.lon}`).join('|');
+            
+            let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
+            if (waypoints) url += `&waypoints=${waypoints}`;
+            window.open(url, '_blank');
+        }
+
+        // Button 2: Route Map for Selected/Blockwise Centers (based on manual checkboxes)
+        function openGoogleMapsRouteSelected() {
+            let checkedCscIds = new Set();
+            document.querySelectorAll('.route-row-checkbox:checked').forEach(cb => {
+                checkedCscIds.add(cb.value);
+            });
+
+            if (checkedCscIds.size === 0) {
+                alert('Kripya route ke liye kam se kam ek center select (checkbox tick) karein!');
+                return;
+            }
+
+            if (checkedCscIds.size > 15) {
+                alert('Aap maximum 15 centers hi select kar sakte hain!');
+                return;
+            }
+
+            let subset = fetchedCenters.filter(c => checkedCscIds.has(String(c.cscId)));
+
+            if (subset.length === 0) {
+                alert('Selected criteria ke anusaar koi valid centers nahi mile!');
+                return;
+            }
+
+            let origin = (!isNaN(currentStartLat) && !isNaN(currentStartLon)) ? `${currentStartLat},${currentStartLon}` : `${subset[0].lat},${subset[0].lon}`;
+            let destination = `${subset[subset.length - 1].lat},${subset[subset.length - 1].lon}`;
+            let waypoints = subset.slice(0, subset.length - 1).map(c => `${c.lat},${c.lon}`).join('|');
+            
             let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
             if (waypoints) url += `&waypoints=${waypoints}`;
             window.open(url, '_blank');
