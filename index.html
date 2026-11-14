@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DM Portal - QC & Smart Route Planner</title>
+    <title>DM Portal - QC, Smart Route Planner & Summary Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
@@ -12,7 +12,6 @@
         body.sunlight-mode .bg-white { background-color: #ffffe0 !important; border: 2px solid #000000 !important; }
         body.sunlight-mode table th { background-color: #000000 !important; color: #ffffff !important; }
         body.sunlight-mode table td { color: #000000 !important; font-weight: 600; }
-        
         #modal-img-tag {
             transition: transform 0.25s ease;
             transform: scale(1);
@@ -26,7 +25,6 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen font-sans">
-
     <!-- GLOBAL FULL-SCREEN LOADING OVERLAY -->
     <div id="global-loader" class="fixed inset-0 bg-black bg-opacity-60 z-[9999] flex flex-col items-center justify-center hidden">
         <div class="bg-white px-8 py-6 rounded-2xl shadow-2xl flex flex-col items-center space-y-4 border border-gray-100 animate-pulse">
@@ -35,9 +33,10 @@
         </div>
     </div>
 
+    <!-- HEADER -->
     <header class="bg-blue-600 text-white shadow-md">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-3">
-            <h1 class="text-xl font-bold">🏛️ DM Management Portal (CSC Chhattisgarh)</h1>
+            <h1 class="text-xl font-bold flex items-center gap-2">🏛️ DM Management Portal (CSC Chhattisgarh)</h1>
             <div class="flex items-center gap-3">
                 <button onclick="toggleSunlightMode()" id="sunlight-btn" class="bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs px-3 py-1.5 rounded-full shadow transition">
                     ☀️ Sunlight Mode
@@ -47,16 +46,20 @@
         </div>
     </header>
 
+    <!-- NAVIGATION TABS -->
     <div class="max-w-7xl mx-auto px-4 mt-4">
-        <div class="flex border-b border-gray-200 bg-white rounded-t-xl shadow-sm px-4 pt-2 gap-4 flex-wrap">
-            <button onclick="switchTab('qc')" id="tab-qc-btn" class="pb-3 px-4 font-bold text-blue-600 border-b-2 border-blue-600 transition">
-                📷 1. Branding Photo QC & Approval
+        <div class="flex border-b border-gray-200 bg-white rounded-t-xl shadow-sm px-4 pt-2 gap-2 sm:gap-4 flex-wrap overflow-x-auto">
+            <button onclick="switchTab('qc')" id="tab-qc-btn" class="pb-3 px-3 font-bold text-blue-600 border-b-2 border-blue-600 transition text-sm whitespace-nowrap">
+                📷 1. Photo QC & Approval
             </button>
-            <button onclick="switchTab('route')" id="tab-route-btn" class="pb-3 px-4 font-semibold text-gray-500 hover:text-gray-800 transition">
-                🗺 2. Smart Route Planner for PV
+            <button onclick="switchTab('route')" id="tab-route-btn" class="pb-3 px-3 font-semibold text-gray-500 hover:text-gray-800 transition text-sm whitespace-nowrap">
+                🗺 2. Smart Route Planner
             </button>
-            <button onclick="switchTab('pending')" id="tab-pending-btn" class="pb-3 px-4 font-semibold text-gray-500 hover:text-gray-800 transition">
-                ⏳ 3. Pending Branding Upload VLEs
+            <button onclick="switchTab('pending')" id="tab-pending-btn" class="pb-3 px-3 font-semibold text-gray-500 hover:text-gray-800 transition text-sm whitespace-nowrap">
+                ⏳ 3. Pending Upload VLEs
+            </button>
+            <button onclick="switchTab('summary')" id="tab-summary-btn" class="pb-3 px-3 font-semibold text-gray-500 hover:text-gray-800 transition text-sm whitespace-nowrap">
+                📊 4. Summary Dashboard
             </button>
         </div>
     </div>
@@ -408,6 +411,79 @@
                 </div>
             </div>
         </div>
+
+        <!-- TAB 4: SUMMARY DASHBOARD -->
+        <div id="section-summary" class="space-y-6 hidden">
+            <div class="bg-white p-6 rounded-xl shadow-sm space-y-4 border border-gray-200">
+                <h2 class="text-lg font-bold text-gray-800">📈 District-wise Performance & Summary Dashboard</h2>
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <p class="text-xs text-gray-500">Master Sheet aur Form Responses ke aadhar par district-wise detailed summary.</p>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button onclick="exportSummaryToExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2.5 rounded-lg shadow transition text-sm flex items-center gap-2">
+                            📊 Export to Excel
+                        </button>
+                        <button onclick="loadSummaryData()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2.5 rounded-lg shadow transition text-sm flex items-center gap-2">
+                            🔄 Refresh Summary Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Cards Grid (5 Cards) -->
+            <div id="summary-cards-container" class="grid grid-cols-1 sm:grid-cols-5 gap-4">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-blue-500">
+                    <p class="text-[11px] font-bold text-gray-500 uppercase">Total Records</p>
+                    <h3 id="sum-total" class="text-xl font-bold text-gray-800 mt-1">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-green-500">
+                    <p class="text-[11px] font-bold text-gray-500 uppercase">Approved</p>
+                    <h3 id="sum-approved" class="text-xl font-bold text-green-600 mt-1">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-emerald-500">
+                    <p class="text-[11px] font-bold text-gray-500 uppercase">PV Done (Master)</p>
+                    <h3 id="sum-pvdone" class="text-xl font-bold text-emerald-600 mt-1">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-amber-500">
+                    <p class="text-[11px] font-bold text-gray-500 uppercase">Pending QC</p>
+                    <h3 id="sum-pending" class="text-xl font-bold text-amber-600 mt-1">0</h3>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-red-500">
+                    <p class="text-[11px] font-bold text-gray-500 uppercase">Rejected</p>
+                    <h3 id="sum-rejected" class="text-xl font-bold text-red-600 mt-1">0</h3>
+                </div>
+            </div>
+
+            <!-- Detailed District-wise Table with Sorting -->
+            <div id="summary-table-container" class="bg-white rounded-xl shadow-sm border border-gray-300">
+                <div class="p-4 bg-gray-100 border-b border-gray-300 flex justify-between items-center flex-wrap gap-3">
+                    <h3 class="font-bold text-gray-800 text-sm">📋 District-wise Master & Form Summary Report</h3>
+                    <input type="text" id="summary-search" onkeyup="filterSummaryTable()" placeholder="🔍 Search District..." class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none w-60">
+                </div>
+                <div class="max-h-[70vh] overflow-auto rounded-b-xl">
+                    <table class="w-full text-left border-collapse border border-gray-300 text-xs">
+                        <thead class="sticky top-0 z-10">
+                            <tr class="bg-gray-200 text-gray-700 uppercase tracking-wider select-none">
+                                <th rowspan="2" class="border border-gray-300 px-3 py-3 text-center align-middle cursor-pointer hover:bg-gray-300" onclick="sortSummaryTable('srNo')"># ↕</th>
+                                <th rowspan="2" class="border border-gray-300 px-3 py-3 align-middle cursor-pointer hover:bg-gray-300" onclick="sortSummaryTable('district')">District Name ↕</th>
+                                <th colspan="4" class="border border-gray-300 px-3 py-2 text-center bg-blue-100 text-blue-900">PV Target vs PV Done Summary</th>
+                                <th colspan="4" class="border border-gray-300 px-3 py-2 text-center bg-emerald-100 text-emerald-900">Branding and QC Status Summary</th>
+                            </tr>
+                            <tr class="bg-gray-100 text-gray-700 uppercase tracking-wider select-none">
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-300 text-center" onclick="sortSummaryTable('uniqueCscPv')">Total CSC ID for PV ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-300 text-center" onclick="sortSummaryTable('totalAdsk')">Total ADSK ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-300 text-center" onclick="sortSummaryTable('totalTransacting')">Total Transacting ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-300 text-center bg-blue-50 text-blue-900" onclick="sortSummaryTable('pvDone')">Total PV Done ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-300 text-center" onclick="sortSummaryTable('uploaded')">Unique Branding Uploaded ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-300 text-center" onclick="sortSummaryTable('approved')">Unique Approved ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-300 text-center" onclick="sortSummaryTable('pending')">Unique Pending QC ↕</th>
+                                <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-300 text-center" onclick="sortSummaryTable('rejected')">Unique Rejected ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summary-table-body" class="divide-y divide-gray-300"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- IMAGE PREVIEW MODAL -->
@@ -508,6 +584,11 @@
         let pendingSortColumn = null;
         let pendingSortAsc = true;
 
+        // Auto-load summary data in background when page loads
+        window.addEventListener('DOMContentLoaded', (event) => {
+            loadSummaryData();
+        });
+
         function showGlobalLoader(message) {
             if (message) {
                 document.getElementById('global-loader-text').innerText = message;
@@ -523,28 +604,35 @@
             let qcSec = document.getElementById('section-qc');
             let routeSec = document.getElementById('section-route');
             let pendingSec = document.getElementById('section-pending');
+            let summarySec = document.getElementById('section-summary');
 
             let qcBtn = document.getElementById('tab-qc-btn');
             let routeBtn = document.getElementById('tab-route-btn');
             let pendingBtn = document.getElementById('tab-pending-btn');
+            let summaryBtn = document.getElementById('tab-summary-btn');
 
             qcSec.classList.add('hidden');
             routeSec.classList.add('hidden');
             pendingSec.classList.add('hidden');
+            summarySec.classList.add('hidden');
 
-            qcBtn.className = "pb-3 px-4 font-semibold text-gray-500 hover:text-gray-800 transition";
-            routeBtn.className = "pb-3 px-4 font-semibold text-gray-500 hover:text-gray-800 transition";
-            pendingBtn.className = "pb-3 px-4 font-semibold text-gray-500 hover:text-gray-800 transition";
+            qcBtn.className = "pb-3 px-3 font-semibold text-gray-500 hover:text-gray-800 transition text-sm whitespace-nowrap";
+            routeBtn.className = "pb-3 px-3 font-semibold text-gray-500 hover:text-gray-800 transition text-sm whitespace-nowrap";
+            pendingBtn.className = "pb-3 px-3 font-semibold text-gray-500 hover:text-gray-800 transition text-sm whitespace-nowrap";
+            summaryBtn.className = "pb-3 px-3 font-semibold text-gray-500 hover:text-gray-800 transition text-sm whitespace-nowrap";
 
             if (tab === 'qc') {
                 qcSec.classList.remove('hidden');
-                qcBtn.className = "pb-3 px-4 font-bold text-blue-600 border-b-2 border-blue-600 transition";
+                qcBtn.className = "pb-3 px-3 font-bold text-blue-600 border-b-2 border-blue-600 transition text-sm whitespace-nowrap";
             } else if (tab === 'route') {
                 routeSec.classList.remove('hidden');
-                routeBtn.className = "pb-3 px-4 font-bold text-blue-600 border-b-2 border-blue-600 transition";
+                routeBtn.className = "pb-3 px-3 font-bold text-blue-600 border-b-2 border-blue-600 transition text-sm whitespace-nowrap";
             } else if (tab === 'pending') {
                 pendingSec.classList.remove('hidden');
-                pendingBtn.className = "pb-3 px-4 font-bold text-blue-600 border-b-2 border-blue-600 transition";
+                pendingBtn.className = "pb-3 px-3 font-bold text-blue-600 border-b-2 border-blue-600 transition text-sm whitespace-nowrap";
+            } else if (tab === 'summary') {
+                summarySec.classList.remove('hidden');
+                summaryBtn.className = "pb-3 px-3 font-bold text-blue-600 border-b-2 border-blue-600 transition text-sm whitespace-nowrap";
             }
         }
 
@@ -601,13 +689,26 @@
                 });
         }
 
+        function normalizeDistrictName(value) {
+            return String(value || '').trim().toLocaleLowerCase('en-IN');
+        }
+
+        function getPendingDistrictLabel(value) {
+            const rawName = String(value || '').trim();
+            const normalizedName = normalizeDistrictName(rawName);
+            const select = document.getElementById('pending-district-select');
+            const matchedOption = Array.from(select.options).find(option =>
+                option.value !== 'ALL' && normalizeDistrictName(option.value) === normalizedName
+            );
+            return matchedOption ? matchedOption.textContent.trim() : rawName;
+        }
         function filterPendingVLEs() {
             let district = document.getElementById('pending-district-select').value;
             let query = document.getElementById('pending-search').value.toLowerCase();
             let priorityFilter = document.getElementById('pending-priority-filter').value;
             
             filteredPendingVLEs = allPendingVLEs.filter(v => {
-                let matchDistrict = (district === 'ALL') || (String(v.district || '').trim().toLowerCase() === district.trim().toLowerCase());
+                let matchDistrict = (district === 'ALL') || (normalizeDistrictName(v.district) === normalizeDistrictName(district));
                 let matchQuery = String(v.cscId || '').toLowerCase().includes(query) || String(v.mobileNo || '').toLowerCase().includes(query) || String(v.vleName || '').toLowerCase().includes(query);
                 let matchPriority = (priorityFilter === 'ALL') || (String(v.priority || '').trim().toLowerCase() === priorityFilter.trim().toLowerCase());
                 return matchDistrict && matchQuery && matchPriority;
@@ -672,7 +773,7 @@
                 return `
                     <tr class="hover:bg-gray-50 border-b border-gray-300">
                         <td class="border border-gray-300 px-3 py-3 text-sm font-bold text-gray-700">${globalIdx}</td>
-                        <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-gray-800">${v.district}</td>
+                        <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-gray-800">${getPendingDistrictLabel(v.district)}</td>
                         <td class="border border-gray-300 px-3 py-3 text-sm text-gray-700">${v.block}</td>
                         <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-blue-600">${v.cscId}</td>
                         <td class="border border-gray-300 px-3 py-3 text-sm font-bold text-gray-800">${v.vleName}</td>
@@ -718,7 +819,7 @@
                 dataToExport = allPendingVLEs;
             } else {
                 dataToExport = allPendingVLEs.filter(v => {
-                    return String(v.district || '').trim().toLowerCase() === selectedDistrict.trim().toLowerCase();
+                    return normalizeDistrictName(v.district) === normalizeDistrictName(selectedDistrict);
                 });
             }
 
@@ -733,7 +834,7 @@
             dataToExport.forEach((v, idx) => {
                 csvRows.push([
                     idx + 1,
-                    v.district || '',
+                    getPendingDistrictLabel(v.district),
                     v.block || '',
                     v.cscId || '',
                     v.vleName || '',
@@ -749,6 +850,136 @@
             let link = document.createElement("a");
             link.setAttribute("href", url);
             link.setAttribute("download", `Pending_Branding_Upload_${selectedDistrict}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        // Summary Dashboard Data Loading Function
+        let summaryDataList = [];
+        let summaryOriginalOrder = new Map();
+        let summarySortCol = null;
+        let summarySortAsc = true;
+
+        async function loadSummaryData() {
+            try {
+                let response = await fetch(`${API_URL}?action=getDistrictSummary`);
+                let result = await response.json();
+
+                if (result.success) {
+                    summaryDataList = result.data || [];
+                    summaryOriginalOrder = new Map(summaryDataList.map((item, index) => [item, index]));
+                    
+                    if (result.totals) {
+                        document.getElementById('sum-total').innerText = result.totals.total || 0;
+                        document.getElementById('sum-approved').innerText = result.totals.approved || 0;
+                        document.getElementById('sum-pvdone').innerText = result.totals.pvDone || 0;
+                        document.getElementById('sum-pending').innerText = result.totals.pending || 0;
+                        document.getElementById('sum-rejected').innerText = result.totals.rejected || 0;
+                    }
+
+                    renderSummaryTable(summaryDataList);
+                }
+            } catch (err) {
+                console.error("Summary background load error:", err);
+            }
+        }
+
+        function renderSummaryTable(data) {
+            let tbody = document.getElementById('summary-table-body');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="10" class="px-4 py-6 text-center text-gray-500 font-semibold">Koi data available nahi hai!</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map((item, idx) => `
+                <tr class="hover:bg-gray-50 border-b border-gray-300">
+                    <td class="border border-gray-300 px-3 py-2.5 text-center font-bold text-gray-700">${idx + 1}</td>
+                    <td class="border border-gray-300 px-3 py-2.5 font-bold text-gray-800">${item.district}</td>
+                    <td class="border border-gray-300 px-3 py-2.5 text-center font-semibold text-blue-600">${item.uniqueCscPv || 0}</td>
+                    <td class="border border-gray-300 px-3 py-2.5 text-center text-gray-700">${item.totalAdsk || 0}</td>
+                    <td class="border border-gray-300 px-3 py-2.5 text-center text-gray-700">${item.totalTransacting || 0}</td>
+                    <td class="border border-gray-300 px-3 py-2.5 text-center font-bold text-blue-700 bg-blue-50/50 text-sm">${item.pvDone || 0}</td>
+                    <td class="border border-gray-300 px-3 py-2.5 text-center text-indigo-600">${item.uploaded || 0}</td>
+                    <td class="border border-gray-300 px-3 py-2.5 text-center text-green-600 font-semibold">${item.approved || 0}</td>
+                    <td class="border border-gray-300 px-3 py-2.5 text-center text-amber-600 font-semibold">${item.pending || 0}</td>
+                    <td class="border border-gray-300 px-3 py-2.5 text-center text-red-600 font-semibold">${item.rejected || 0}</td>
+                </tr>
+            `).join('');
+        }
+
+        function sortSummaryTable(columnKey) {
+            if (summarySortCol === columnKey) {
+                summarySortAsc = !summarySortAsc;
+            } else {
+                summarySortCol = columnKey;
+                summarySortAsc = true;
+            }
+
+            summaryDataList.sort((a, b) => {
+                let valA = a[columnKey];
+                let valB = b[columnKey];
+
+                if (columnKey === 'srNo') {
+                    let indexA = summaryOriginalOrder.get(a) ?? 0;
+                    let indexB = summaryOriginalOrder.get(b) ?? 0;
+                    return summarySortAsc ? indexA - indexB : indexB - indexA;
+                } else if (columnKey === 'district') {
+                    let strA = String(valA || '').trim().toLowerCase();
+                    let strB = String(valB || '').trim().toLowerCase();
+                    return summarySortAsc ? strA.localeCompare(strB) : strB.localeCompare(strA);
+                } else {
+                    return summarySortAsc ? Number(valA || 0) - Number(valB || 0) : Number(valB || 0) - Number(valA || 0);
+                }
+            });
+
+            renderSummaryTable(summaryDataList);
+        }
+
+        function filterSummaryTable() {
+            let query = document.getElementById('summary-search').value.toLowerCase();
+            let filtered = summaryDataList.filter(item => 
+                String(item.district || '').toLowerCase().includes(query)
+            );
+            renderSummaryTable(filtered);
+        }
+
+        function exportSummaryToExcel() {
+            const searchInput = document.getElementById('summary-search');
+            const query = String(searchInput?.value || '').trim().toLowerCase();
+            const exportData = summaryDataList.filter(item =>
+                String(item.district || '').toLowerCase().includes(query)
+            );
+
+            if (!exportData.length) {
+                alert('Export karne ke liye summary data available nahi hai.');
+                return;
+            }
+
+            const rows = exportData.map((item, index) => ({
+                'S.No': index + 1,
+                'District Name': item.district || '',
+                'Unique CSC ID for PV': Number(item.uniqueCscPv || 0),
+                'Total ADSK': Number(item.totalAdsk || 0),
+                'Total Transacting': Number(item.totalTransacting || 0),
+                'Total PV Done': Number(item.pvDone || 0),
+                'Unique Branding Uploaded': Number(item.uploaded || 0),
+                'Unique Approved': Number(item.approved || 0),
+                'Unique Pending QC': Number(item.pending || 0),
+                'Unique Rejected': Number(item.rejected || 0)
+            }));
+
+            const csv = [
+                Object.keys(rows[0]),
+                ...rows.map(row => Object.values(row))
+            ].map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+            const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const date = new Date().toISOString().slice(0, 10);
+            link.href = url;
+            link.download = `District_Summary_${date}.csv`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -1140,7 +1371,6 @@
 
             checkboxes.forEach(cb => {
                 let rowEl = cb.closest('tr');
-                // Agar row visible hai (block filter ke tahat hidden nahi hai)
                 if (rowEl.style.display !== 'none') {
                     if (selectAllCheckbox.checked && checkedCount < 15) {
                         cb.checked = true;
@@ -1229,7 +1459,6 @@
             }
         }
 
-        // Button 1: Route Map for Nearest 15 centers from overall district
         function openGoogleMapsRouteOverall() {
             if (fetchedCenters.length === 0) { alert('Koi centers available nahi hain!'); return; }
             let subset = fetchedCenters.slice(0, 15);
@@ -1243,7 +1472,6 @@
             window.open(url, '_blank');
         }
 
-        // Button 2: Route Map for Selected/Blockwise Centers (based on manual checkboxes)
         function openGoogleMapsRouteSelected() {
             let checkedCscIds = new Set();
             document.querySelectorAll('.route-row-checkbox:checked').forEach(cb => {
@@ -1278,26 +1506,34 @@
 
         function exportQCTableToExcel() {
             if (!filteredQcCenters || filteredQcCenters.length === 0) { alert('Export ke liye data nahi hai!'); return; }
-            let csvContent = "data:text/csv;charset=utf-8,S.No,District,Block,CSC ID,VLE Name,Mobile No,Address,Priority,Status\r\n";
+            let csvRows = ["S.No,District,Block,CSC ID,VLE Name,Mobile No,Address,Priority,Status"];
             filteredQcCenters.forEach((c, idx) => {
-                csvContent += [idx + 1, `"${c.district}"`, `"${c.block}"`, `"${c.cscId}"`, `"${c.vleName}"`, `"${c.mobileNo}"`, `"${c.address}"`, `"${c.priority}"`, `"${c.qcStatus}"`].join(",") + "\r\n";
+                csvRows.push([idx + 1, `"${c.district}"`, `"${c.block}"`, `"${c.cscId}"`, `"${c.vleName}"`, `"${c.mobileNo}"`, `"${c.address}"`, `"${c.priority}"`, `"${c.qcStatus}"`].join(","));
             });
+            let csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\r\n");
+            let encodedUri = encodeURI(csvContent);
             let link = document.createElement("a");
-            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("href", encodedUri);
             link.setAttribute("download", "QC_Report.csv");
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            document.body.appendChild(link); 
+            link.click(); 
+            document.body.removeChild(link);
         }
 
         function exportRouteTableToExcel() {
             if (!fetchedCenters || fetchedCenters.length === 0) { alert('Export ke liye data nahi hai!'); return; }
-            let csvContent = "data:text/csv;charset=utf-8,S.No,District,Block,CSC ID,VLE Name,Mobile No,Address,Distance\r\n";
+            let csvRows = ["S.No,District,Block,CSC ID,VLE Name,Mobile No,Address,Distance"];
             fetchedCenters.forEach((c, idx) => {
-                csvContent += [idx + 1, `"${c.district}"`, `"${c.block}"`, `"${c.cscId}"`, `"${c.vleName}"`, `"${c.mobileNo}"`, `"${c.address}"`, `"${c.distance} km"`].join(",") + "\r\n";
+                csvRows.push([idx + 1, `"${c.district}"`, `"${c.block}"`, `"${c.cscId}"`, `"${c.vleName}"`, `"${c.mobileNo}"`, `"${c.address}"`, `"${c.distance} km"`].join(","));
             });
+            let csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\r\n");
+            let encodedUri = encodeURI(csvContent);
             let link = document.createElement("a");
-            link.setAttribute("href", encodeURI(csvContent));
+            link.setAttribute("href", encodedUri);
             link.setAttribute("download", "Route_Plan.csv");
-            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+            document.body.appendChild(link); 
+            link.click(); 
+            document.body.removeChild(link);
         }
     </script>
 </body>
