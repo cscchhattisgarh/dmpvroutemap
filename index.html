@@ -392,6 +392,8 @@
                                 <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortPendingTable('vleName')">VLE Name ↕</th>
                                 <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortPendingTable('mobileNo')">Mobile No ↕</th>
                                 <th class="border border-gray-300 px-3 py-3 cursor-pointer hover:bg-gray-200" onclick="sortPendingTable('priority')">Priority ↕</th>
+                                <th class="border border-gray-300 px-3 py-3">Remark</th>
+                                <th class="border border-gray-300 px-3 py-3 text-center">Action</th>
                             </tr>
                         </thead>
                         <tbody id="pending-table-body" class="divide-y divide-gray-300"></tbody>
@@ -646,6 +648,18 @@
 
                 if (result.success) {
                     allPendingVLEs = result.data || [];
+                    try {
+                        const remarkResponse = await fetch(`${API_URL}?action=getPendingVLERemarks`);
+                        const remarkResult = await remarkResponse.json();
+                        if (remarkResult.success && remarkResult.remarks) {
+                            allPendingVLEs.forEach(v => {
+                                v.pendingUploadRemark = remarkResult.remarks[normalizePendingCscId(v.cscId)] || '';
+                                v.remarkEditing = !v.pendingUploadRemark;
+                            });
+                        }
+                    } catch (remarkErr) {
+                        console.warn('Saved remarks load failed:', remarkErr);
+                    }
                     
                     let prioritySelect = document.getElementById('pending-priority-filter');
                     let priorityOpts = `<option value="ALL">All Priorities</option>`;
@@ -757,7 +771,7 @@
             if (pendingCurrentPage > totalPages) pendingCurrentPage = totalPages;
 
             if (filteredPendingVLEs.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-gray-500 font-semibold">Koi pending VLE nahi mila!</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500 font-semibold">Koi pending VLE nahi mila!</td></tr>`;
                 document.getElementById('pending-pagination-info').innerText = `Showing 0-0 of 0`;
                 updatePendingPageJumpDropdown(1, 1);
                 return;
@@ -770,6 +784,8 @@
             let rowsHtml = paginatedItems.map((v, idx) => {
                 let globalIdx = startIndex + idx + 1;
                 v.srNo = globalIdx;
+                let savedRemark = v.pendingUploadRemark || v.remark || '';
+                let isEditing = v.remarkEditing === true || !savedRemark;
                 return `
                     <tr class="hover:bg-gray-50 border-b border-gray-300">
                         <td class="border border-gray-300 px-3 py-3 text-sm font-bold text-gray-700">${globalIdx}</td>
@@ -779,6 +795,19 @@
                         <td class="border border-gray-300 px-3 py-3 text-sm font-bold text-gray-800">${v.vleName}</td>
                         <td class="border border-gray-300 px-3 py-3 text-sm text-gray-700">${v.mobileNo || 'N/A'}</td>
                         <td class="border border-gray-300 px-3 py-3 text-sm font-semibold text-gray-700">${v.priority || 'N/A'}</td>
+                        <td class="border border-gray-300 px-3 py-2.5 min-w-64">
+                            ${isEditing ? `
+                                <select id="pending-remark-${globalIdx}" class="w-full px-2 py-1.5 border border-gray-300 rounded text-xs bg-white">
+                                    <option value="">-- Remark chunein --</option>
+                                    <option value="Not Interested for Common Branding" ${savedRemark === 'Not Interested for Common Branding' ? 'selected' : ''}>Not Interested for Common Branding</option>
+                                    <option value="Shop Not Available" ${savedRemark === 'Shop Not Available' ? 'selected' : ''}>Shop Not Available</option>
+                                    <option value="Unable to Contact" ${savedRemark === 'Unable to Contact' ? 'selected' : ''}>Unable to Contact</option>
+                                </select>
+                            ` : `<span class="text-sm text-gray-700">${escapePendingRemark(savedRemark)}</span>`}
+                        </td>
+                        <td class="border border-gray-300 px-3 py-2.5 text-center">
+                            <button id="pending-submit-${globalIdx}" onclick="${isEditing ? `submitPendingVLERemark(${globalIdx - 1})` : `editPendingVLERemark(${globalIdx - 1})`}" class="px-3 py-1.5 ${isEditing ? 'bg-blue-600 hover:bg-blue-700' : 'bg-amber-500 hover:bg-amber-600'} text-white rounded text-xs font-semibold">${isEditing ? 'Submit' : 'Edit'}</button>
+                        </td>
                     </tr>
                 `;
             }).join('');
@@ -791,6 +820,60 @@
             document.getElementById('pending-next-btn').disabled = pendingCurrentPage >= totalPages;
         }
 
+        function normalizePendingCscId(value) {
+            return String(value || '').trim().split('.')[0];
+        }
+
+        function escapePendingRemark(value) {
+            return String(value || '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            })[char]);
+        }
+
+        function editPendingVLERemark(recordIndex) {
+            const row = filteredPendingVLEs[recordIndex];
+            if (!row) return;
+            row.remarkEditing = true;
+            renderPendingVLETable();
+        }
+
+        async function submitPendingVLERemark(recordIndex) {
+            const row = filteredPendingVLEs[recordIndex];
+            const select = document.getElementById(`pending-remark-${recordIndex + 1}`);
+            const button = document.getElementById(`pending-submit-${recordIndex + 1}`);
+            const remark = select?.value || '';
+
+            if (!row || !remark) {
+                alert('Submit karne se pehle remark chunein.');
+                return;
+            }
+
+            const params = new URLSearchParams({
+                action: 'savePendingVLERemark',
+                district: row.district || '',
+                block: row.block || '',
+                cscId: row.cscId || '',
+                remark
+            });
+
+            button.disabled = true;
+            button.textContent = 'Saving...';
+            try {
+                const response = await fetch(`${API_URL}?${params.toString()}`);
+                const result = await response.json();
+                if (!result.success) throw new Error(result.message || 'Remark save nahi hua.');
+
+                row.pendingUploadRemark = remark;
+                row.remarkEditing = false;
+                renderPendingVLETable();
+                alert(result.message || 'Remark Google Sheet mein save ho gaya.');
+            } catch (err) {
+                console.error('Pending VLE remark save error:', err);
+                button.disabled = false;
+                button.textContent = 'Submit';
+                alert(err.message || 'Remark save nahi ho saka. Backend action check karein.');
+            }
+        }
         function updatePendingPageJumpDropdown(curr, total) {
             let select = document.getElementById('pending-page-jump-select');
             document.getElementById('pending-total-pages-label').innerText = `of ${total}`;
@@ -1404,7 +1487,7 @@
             });
 
             if (displayCenters.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="px-4 py-6 text-center text-gray-500 font-semibold">Is block ke liye koi unverified centers nahi mile!</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="px-4 py-6 text-center text-gray-500 font-semibold">Is block ke liye koi unverified centers nahi mile!</td></tr>`;
                 return;
             }
 
